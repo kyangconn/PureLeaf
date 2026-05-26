@@ -1,0 +1,18 @@
+# 编译输出
+/goleaf
+/goleaf.exe
+/data/output/
+
+# 前端
+/web/dist/
+/web/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
