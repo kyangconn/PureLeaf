@@ -1,18 +1,42 @@
-# 编译输出
-/goleaf
-/goleaf.exe
-/data/output/
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# 前端
-/web/dist/
-/web/node_modules/
+# Test binary, built with `go test -c`
+*.test
 
-# IDE
-.vscode/
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env file
+.env
+
+# Editor/IDE
 .idea/
-*.swp
-*.swo
+.vscode/
+.trae/
 
-# 系统
-.DS_Store
-Thumbs.db
+# config yaml
+conf*.yaml
+!config-example.yaml
+
+# Frontend build artifacts (do not commit these)
+cmd/server/dist/
+web/dist/
+web/node_modules/

@@ -18,8 +18,7 @@ html,
 body,
 #app {
   height: 100%;
-  font-family:
-    "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 /* 滚动条美化 */

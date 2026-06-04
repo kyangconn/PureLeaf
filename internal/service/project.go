@@ -19,14 +19,45 @@ func NewProjectService(db *gorm.DB) *ProjectService {
 	return &ProjectService{db: db}
 }
 
-// Create 为用户创建一个新项目
+const defaultMainTex = `\documentclass{article}
+\usepackage[UTF8]{ctex}
+
+\title{未命名文档}
+\author{}
+
+\begin{document}
+\maketitle
+
+\section{开始写作}
+欢迎使用 goleaf！
+
+\end{document}
+`
+
+// Create 为用户创建一个新项目，并附带默认 main.tex 模板
 func (s *ProjectService) Create(name string, ownerID uint) (*model.Project, error) {
 	project := &model.Project{
 		Name:    name,
 		OwnerID: ownerID,
 	}
-	if err := s.db.Create(project).Error; err != nil {
-		return nil, fmt.Errorf("创建项目失败: %w", err)
+
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(project).Error; err != nil {
+			return fmt.Errorf("创建项目失败: %w", err)
+		}
+		// 附带默认 main.tex 模板
+		mainTex := &model.File{
+			ProjectID: project.ID,
+			Name:      "main.tex",
+			Content:   defaultMainTex,
+		}
+		if err := tx.Create(mainTex).Error; err != nil {
+			return fmt.Errorf("创建默认文件失败: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return project, nil
 }

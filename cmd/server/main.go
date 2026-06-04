@@ -3,11 +3,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,6 +34,9 @@ func main() {
 		log.Fatalf("加载配置失败: %v", err)
 	}
 
+	log.Printf("配置加载完成: port=%d mode=%s jwt_expire=%dh",
+		cfg.Server.Port, cfg.Server.Mode, cfg.JWT.ExpireHour)
+
 	// --- 设置 Gin 运行模式 ---
 	gin.SetMode(cfg.Server.Mode)
 
@@ -43,8 +51,8 @@ func main() {
 	authSvc := service.NewAuthService(db)
 	projectSvc := service.NewProjectService(db)
 
-	// 编译输出目录
-	outputDir := filepath.Join(filepath.Dir(cfg.Database.Path), "output")
+	// 编译输出目录 -> data/projects/
+	outputDir := filepath.Join(filepath.Dir(cfg.Database.Path), "projects")
 	fileSvc := service.NewFileService(db, cfg.Latex.Compiler, cfg.Latex.Timeout, outputDir)
 
 	// --- 初始化 HTTP 处理器 ---
@@ -79,6 +87,7 @@ func main() {
 		// 公开接口 (无需认证)
 		auth := api.Group("/auth")
 		{
+			auth.GET("/status", authH.Status)
 			auth.POST("/register", authH.Register)
 			auth.POST("/login", authH.Login)
 		}
@@ -112,12 +121,44 @@ func main() {
 		}
 	}
 
-	// --- 启动服务 ---
+	// --- 启动服务 (优雅退出) ---
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	log.Printf("goleaf 启动于 http://localhost%s", addr)
-	if err := r.Run(addr); err != nil {
-		log.Fatalf("服务启动失败: %v", err)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
 	}
+
+	// 在 goroutine 中启动，主线程等待信号
+	go func() {
+		log.Printf("goleaf 启动于 http://localhost%s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("服务启动失败: %v", err)
+		}
+	}()
+
+	// 等待中断信号 (Ctrl+C / SIGTERM)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+	log.Printf("goleaf 正在退出..., 因为 %v", sig)
+
+	// 设定 10 秒超时完成退出
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// 关闭 HTTP 服务 (不再接受新请求，等待现有请求完成)
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("HTTP 服务关闭异常: %v", err)
+	}
+
+	// 关闭数据库连接
+	if sqlDB, err := db.DB(); err == nil {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("数据库关闭异常: %v", err)
+		}
+	}
+
+	log.Println("goleaf 已退出")
 }
 
 // isAPIPath 判断请求路径是否为 API 路径

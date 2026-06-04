@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -99,6 +100,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Status 返回系统初始化状态 (是否有用户)
+func (h *AuthHandler) Status(c *gin.Context) {
+	hasUsers, err := h.svc.HasUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"has_users": hasUsers})
+}
+
 // Me 获取当前登录用户信息
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID := c.GetUint("userID")
@@ -114,10 +125,14 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 // generateToken 生成 JWT Token
 func (h *AuthHandler) generateToken(userID uint) (string, error) {
+	now := time.Now()
+	exp := now.Add(time.Duration(h.jwtExpHour) * time.Hour)
+	log.Printf("[JWT] 生成 Token: userID=%d jwtExpHour=%d exp=%d", userID, h.jwtExpHour, exp.Unix())
+
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Duration(h.jwtExpHour) * time.Hour).Unix(),
-		"iat":     time.Now().Unix(),
+		"exp":     exp.Unix(),
+		"iat":     now.Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(h.jwtSecret))

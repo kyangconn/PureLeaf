@@ -13,16 +13,12 @@
     <main class="dash-main">
       <div class="dash-toolbar">
         <h2>我的项目</h2>
-        <el-button type="primary" :icon="Plus" @click="showCreateDialog = true"
-          >新建项目</el-button
-        >
+        <el-button type="primary" :icon="Plus" @click="showCreateDialog = true">新建项目</el-button>
       </div>
 
       <!-- 项目列表 -->
       <div v-if="projects.length === 0" class="dash-empty">
-        <el-empty
-          description="还没有项目，点击上方按钮创建第一个 LaTeX 项目吧"
-        />
+        <el-empty description="还没有项目，点击上方按钮创建第一个 LaTeX 项目吧" />
       </div>
 
       <div v-else class="project-grid">
@@ -44,12 +40,8 @@
               <el-button text :icon="MoreFilled" />
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="openRename(project)"
-                    >重命名</el-dropdown-item
-                  >
-                  <el-dropdown-item divided @click="handleDelete(project)"
-                    >删除</el-dropdown-item
-                  >
+                  <el-dropdown-item @click="openRename(project)">重命名</el-dropdown-item>
+                  <el-dropdown-item divided @click="handleDelete(project)">删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -60,41 +52,27 @@
 
     <!-- 新建项目对话框 -->
     <el-dialog v-model="showCreateDialog" title="新建项目" width="400px">
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        @keyup.enter="handleCreate"
-      >
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" @keyup.enter="handleCreate">
         <el-form-item prop="name">
           <el-input v-model="createForm.name" placeholder="项目名称" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate"
-          >创建</el-button
-        >
+        <el-button type="primary" :loading="creating" @click="handleCreate">创建</el-button>
       </template>
     </el-dialog>
 
     <!-- 重命名对话框 -->
     <el-dialog v-model="showRenameDialog" title="重命名项目" width="400px">
-      <el-form
-        ref="renameFormRef"
-        :model="renameForm"
-        :rules="renameRules"
-        @keyup.enter="handleRename"
-      >
+      <el-form ref="renameFormRef" :model="renameForm" :rules="renameRules" @keyup.enter="handleRename">
         <el-form-item prop="name">
           <el-input v-model="renameForm.name" placeholder="新项目名称" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showRenameDialog = false">取消</el-button>
-        <el-button type="primary" :loading="renaming" @click="handleRename"
-          >确认</el-button
-        >
+        <el-button type="primary" :loading="renaming" @click="handleRename">确认</el-button>
       </template>
     </el-dialog>
   </div>
@@ -104,9 +82,11 @@
 import { Plus, Document, MoreFilled } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { projectAPI } from "../api";
 import { useAuthStore } from "../stores/auth";
 
+const router = useRouter();
 const authStore = useAuthStore();
 const projects = ref([]);
 
@@ -145,10 +125,11 @@ async function handleCreate() {
   if (!valid) return;
   creating.value = true;
   try {
-    await projectAPI.create({ name: createForm.name });
+    const { data } = await projectAPI.create({ name: createForm.name });
     showCreateDialog.value = false;
     createForm.name = "";
-    await fetchProjects();
+    // 创建成功后直接跳入编辑器
+    router.push(`/project/${data.id}`);
   } finally {
     creating.value = false;
   }
@@ -175,15 +156,11 @@ async function handleRename() {
 
 async function handleDelete(project) {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除项目「${project.name}」吗？此操作不可恢复。`,
-      "确认删除",
-      {
-        type: "warning",
-        confirmButtonText: "删除",
-        cancelButtonText: "取消",
-      },
-    );
+    await ElMessageBox.confirm(`确定要删除项目「${project.name}」吗？此操作不可恢复。`, "确认删除", {
+      type: "warning",
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+    });
     await projectAPI.delete(project.id);
     await fetchProjects();
   } catch {

@@ -33,32 +33,16 @@
             <el-dropdown-menu>
               <!-- 目录允许在此目录下创建文件 -->
               <template v-if="node.is_dir">
-                <el-dropdown-item
-                  @click="actions.openCreateDialog(false, node.id)"
-                  >新建文件</el-dropdown-item
-                >
-                <el-dropdown-item
-                  @click="actions.openCreateDialog(true, node.id)"
-                  >新建文件夹</el-dropdown-item
-                >
-                <el-dropdown-item
-                  divided
-                  @click="actions.openRenameDialog(node.id, node.name)"
+                <el-dropdown-item @click="actions.openCreateDialog(false, node.id)">新建文件</el-dropdown-item>
+                <el-dropdown-item @click="actions.openCreateDialog(true, node.id)">新建文件夹</el-dropdown-item>
+                <el-dropdown-item divided @click="actions.openRenameDialog(node.id, node.name)"
                   >重命名</el-dropdown-item
                 >
               </template>
               <template v-else>
-                <el-dropdown-item
-                  @click="actions.openRenameDialog(node.id, node.name)"
-                  >重命名</el-dropdown-item
-                >
+                <el-dropdown-item @click="actions.openRenameDialog(node.id, node.name)">重命名</el-dropdown-item>
               </template>
-              <el-dropdown-item
-                divided
-                class="danger-item"
-                @click="handleDelete"
-                >删除</el-dropdown-item
-              >
+              <el-dropdown-item divided class="danger-item" @click="handleDelete">删除</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -82,14 +66,7 @@
 </template>
 
 <script setup>
-import {
-  ArrowRight,
-  ArrowDown,
-  Folder,
-  FolderOpened,
-  Document,
-  MoreFilled,
-} from "@element-plus/icons-vue";
+import { ArrowRight, ArrowDown, Folder, FolderOpened, Document, MoreFilled } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 import { ref, inject } from "vue";
 

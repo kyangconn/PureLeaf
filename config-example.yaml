@@ -6,7 +6,7 @@ database:
   path: ./data/goleaf.db
 
 jwt:
-  secret: 14c702d9cfce8385deb5881fbeafc43f
+  secret: change-me-in-production
   expire_hour: 24
 
 latex:

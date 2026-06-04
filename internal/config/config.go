@@ -1,5 +1,5 @@
 // Package config 提供应用配置的加载与管理。
-// 配置来源优先级: 命令行参数 > 环境变量 > 配置文件 > 默认值
+// 配置来源优先级: 环境变量 > 配置文件 > 默认值
 package config
 
 import (
@@ -40,15 +40,17 @@ type LatexConfig struct {
 	Timeout  int    // 编译超时秒数
 }
 
-// Load 从配置文件和命令行参数加载配置
+// Load 从配置文件、环境变量加载配置，未设置项使用默认值
 func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
-	// --- 配置文件 ---
+	// ① 默认值（优先级最低）
+	setDefaults(v)
+
+	// ② 配置文件
 	if configPath != "" {
 		v.SetConfigFile(configPath)
 	} else {
-		// 默认搜索路径
 		v.SetConfigName("config")
 		v.SetConfigType("yaml")
 		v.AddConfigPath(".")
@@ -59,30 +61,57 @@ func Load(configPath string) (*Config, error) {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, fmt.Errorf("读取配置文件失败: %w", err)
 		}
-		// 配置文件不存在时仅使用默认值，不报错
+		// 文件不存在继续，仅依赖默认值
 	}
 
-	// --- 环境变量绑定 (GOLEAF_ 前缀) ---
+	// ③ 环境变量（优先级最高，覆盖文件值）
 	v.SetEnvPrefix("GOLEAF")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-
-	// 绑定具体键名，便于 viper 自动映射
 	bindEnvs(v)
 
-	// --- 默认值 ---
-	setDefaults(v)
-
-	// --- CLI 参数绑定 (通过 viper 的 pflag 支持) ---
-	v.SetConfigName("config") // 让 viper 知道参数名
-	// 注意: 命令行参数需要在使用处 (cmd/server/main.go) 与 pflag 集成
-
-	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("解析配置失败: %w", err)
+	// 直接逐项读取（避免 Unmarshal 的类型转换陷阱）
+	cfg := &Config{
+		Server: ServerConfig{
+			Port: v.GetInt("server.port"),
+			Mode: v.GetString("server.mode"),
+		},
+		Database: DatabaseConfig{
+			Path: v.GetString("database.path"),
+		},
+		JWT: JWTConfig{
+			Secret:     v.GetString("jwt.secret"),
+			ExpireHour: v.GetInt("jwt.expire_hour"),
+		},
+		Latex: LatexConfig{
+			Compiler: v.GetString("latex.compiler"),
+			Timeout:  v.GetInt("latex.timeout"),
+		},
 	}
 
-	return &cfg, nil
+	// ④ 校验关键配置
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// Validate 校验配置合法性
+func (c *Config) Validate() error {
+	if c.JWT.ExpireHour <= 0 {
+		return fmt.Errorf("jwt.expire_hour 必须大于 0，当前值: %d (请检查环境变量 GOLEAF_JWT_EXPIRE_HOUR)", c.JWT.ExpireHour)
+	}
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("jwt.secret 不能为空")
+	}
+	if c.Latex.Timeout <= 0 {
+		return fmt.Errorf("latex.timeout 必须大于 0")
+	}
+	if c.Server.Port <= 0 {
+		return fmt.Errorf("server.port 必须大于 0")
+	}
+	return nil
 }
 
 // bindEnvs 将配置键与环境变量做显式绑定

@@ -33,6 +33,7 @@ http.interceptors.response.use(
 
 // ---- 认证 ----
 export const authAPI = {
+  status: () => http.get("/auth/status"),
   register: (data) => http.post("/auth/register", data),
   login: (data) => http.post("/auth/login", data),
   me: () => http.get("/auth/me"),
@@ -50,17 +51,12 @@ export const projectAPI = {
 // ---- 文件 ----
 export const fileAPI = {
   getTree: (projectId) => http.get(`/projects/${projectId}/files`),
-  getContent: (projectId, fileId) =>
-    http.get(`/projects/${projectId}/files/${fileId}`),
+  getContent: (projectId, fileId) => http.get(`/projects/${projectId}/files/${fileId}`),
   create: (projectId, data) => http.post(`/projects/${projectId}/files`, data),
-  updateContent: (projectId, fileId, data) =>
-    http.put(`/projects/${projectId}/files/${fileId}`, data),
-  rename: (projectId, fileId, data) =>
-    http.patch(`/projects/${projectId}/files/${fileId}/rename`, data),
-  delete: (projectId, fileId) =>
-    http.delete(`/projects/${projectId}/files/${fileId}`),
-  compile: (projectId) =>
-    http.post(`/projects/${projectId}/compile`, {}, { responseType: "blob" }),
+  updateContent: (projectId, fileId, data) => http.put(`/projects/${projectId}/files/${fileId}`, data),
+  rename: (projectId, fileId, data) => http.patch(`/projects/${projectId}/files/${fileId}/rename`, data),
+  delete: (projectId, fileId) => http.delete(`/projects/${projectId}/files/${fileId}`),
+  compile: (projectId) => http.post(`/projects/${projectId}/compile`, {}, { responseType: "blob" }),
 };
 
 export default http;

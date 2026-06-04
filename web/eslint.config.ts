@@ -11,15 +11,7 @@ import tseslint from "typescript-eslint";
 export default defineConfig([
   // ── Global ignores ──────────────────────────────────────────────
   {
-    ignores: [
-      "**/node_modules/**",
-      "dist/",
-      "build/",
-      "public/",
-      "env.d.ts",
-      ".vite/",
-      ".cache/",
-    ],
+    ignores: ["**/node_modules/**", "dist/", "build/", "public/", "env.d.ts", ".vite/", ".cache/"],
   },
   // ── JS / TS base (recommended) ─────────────────────────────────
   {

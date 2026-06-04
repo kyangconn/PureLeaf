@@ -3,18 +3,11 @@
     <!-- 顶部工具栏 -->
     <header class="editor-header">
       <div class="header-left">
-        <el-button text :icon="ArrowLeft" @click="$router.push('/')"
-          >返回</el-button
-        >
+        <el-button text :icon="ArrowLeft" @click="$router.push('/')">返回</el-button>
         <span class="project-name">{{ project?.name || "加载中..." }}</span>
       </div>
       <div class="header-right">
-        <el-button
-          type="primary"
-          :icon="Upload"
-          :loading="compiling"
-          @click="handleCompile"
-        >
+        <el-button type="primary" :icon="Upload" :loading="compiling" @click="handleCompile">
           {{ compiling ? "编译中..." : "编译" }}
         </el-button>
         <el-button :icon="RefreshRight" @click="refreshTree">刷新</el-button>
@@ -61,44 +54,20 @@
       </main>
 
       <!-- 分隔条 -->
-      <div
-        v-if="showPdf"
-        class="resizer"
-        @mousedown="startResize('pdf', $event)"
-      ></div>
+      <div v-if="showPdf" class="resizer" @mousedown="startResize('pdf', $event)"></div>
 
       <!-- 右侧: PDF 预览 -->
-      <aside
-        v-if="showPdf"
-        class="pdf-panel"
-        :style="{ width: pdfWidth + 'px' }"
-      >
-        <PdfPreview
-          :pdf-url="pdfUrl"
-          :log="compileLog"
-          @close="showPdf = false"
-        />
+      <aside v-if="showPdf" class="pdf-panel" :style="{ width: pdfWidth + 'px' }">
+        <PdfPreview :pdf-url="pdfUrl" :log="compileLog" @close="showPdf = false" />
       </aside>
     </div>
   </div>
 </template>
 
 <script setup>
-import {
-  ArrowLeft,
-  Upload,
-  RefreshRight,
-  Close,
-} from "@element-plus/icons-vue";
+import { ArrowLeft, Upload, RefreshRight, Close } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import {
-  ref,
-  reactive,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-  nextTick,
-} from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { projectAPI, fileAPI } from "../api";
 import FileTree from "../components/FileTree.vue";
@@ -161,12 +130,7 @@ async function refreshTree() {
 // ---- CodeMirror 初始化 ----
 
 async function initCodeMirror() {
-  const [
-    { basicSetup: bs },
-    { EditorView: ev, keymap },
-    { EditorState: es },
-    { oneDark: od },
-  ] = await Promise.all([
+  const [{ basicSetup: bs }, { EditorView: ev, keymap }, { EditorState: es }, { oneDark: od }] = await Promise.all([
     import("codemirror"),
     import("@codemirror/view"),
     import("@codemirror/state"),
@@ -193,12 +157,7 @@ function createEditor() {
   cmView = new EditorView({
     state: EditorState.create({
       doc: activeFileContent.value,
-      extensions: [
-        basicSetup,
-        oneDark,
-        updateListener,
-        EditorView.lineWrapping,
-      ],
+      extensions: [basicSetup, oneDark, updateListener, EditorView.lineWrapping],
     }),
     parent: editorContainer.value,
   });
@@ -226,11 +185,7 @@ async function saveFile() {
 
 async function handleFileSelect(file) {
   // 先保存当前文件
-  if (
-    activeFile.value &&
-    !activeFile.value.is_dir &&
-    activeFile.value.id !== file.id
-  ) {
+  if (activeFile.value && !activeFile.value.is_dir && activeFile.value.id !== file.id) {
     await saveFile();
   }
 

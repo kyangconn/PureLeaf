@@ -3,42 +3,18 @@
     <div class="auth-card">
       <h1 class="auth-title">goleaf</h1>
       <p class="auth-subtitle">轻量在线 LaTeX 编辑器</p>
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        size="large"
-        @keyup.enter="handleLogin"
-      >
+      <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="handleLogin">
         <el-form-item prop="username">
-          <el-input
-            v-model="form.username"
-            placeholder="用户名"
-            :prefix-icon="User"
-          />
+          <el-input v-model="form.username" placeholder="用户名" :prefix-icon="User" />
         </el-form-item>
         <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="密码"
-            show-password
-            :prefix-icon="Lock"
-          />
+          <el-input v-model="form.password" type="password" placeholder="密码" show-password :prefix-icon="Lock" />
         </el-form-item>
         <el-form-item>
-          <el-button
-            type="primary"
-            class="auth-btn"
-            :loading="loading"
-            @click="handleLogin"
-            >登 录</el-button
-          >
+          <el-button type="primary" class="auth-btn" :loading="loading" @click="handleLogin">登 录</el-button>
         </el-form-item>
       </el-form>
-      <p class="auth-footer">
-        还没有账号？<router-link to="/register">立即注册</router-link>
-      </p>
+      <p class="auth-footer">还没有账号？<router-link to="/register">立即注册</router-link></p>
     </div>
   </div>
 </template>
@@ -47,6 +23,7 @@
 import { User, Lock } from "@element-plus/icons-vue";
 import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
+import { resetSystemStatus } from "../router";
 import { useAuthStore } from "../stores/auth";
 
 const router = useRouter();
@@ -68,6 +45,7 @@ async function handleLogin() {
   loading.value = true;
   try {
     await authStore.login(form.username, form.password);
+    resetSystemStatus();
     router.push("/");
   } finally {
     loading.value = false;

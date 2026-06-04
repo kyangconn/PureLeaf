@@ -4,28 +4,14 @@
     <div class="tree-toolbar">
       <span class="tree-title">文件</span>
       <div class="tree-actions">
-        <el-button
-          text
-          size="small"
-          :icon="DocumentAdd"
-          title="新建文件"
-          @click="openCreateDialog(false, null)"
-        />
-        <el-button
-          text
-          size="small"
-          :icon="FolderAdd"
-          title="新建文件夹"
-          @click="openCreateDialog(true, null)"
-        />
+        <el-button text size="small" :icon="DocumentAdd" title="新建文件" @click="openCreateDialog(false, null)" />
+        <el-button text size="small" :icon="FolderAdd" title="新建文件夹" @click="openCreateDialog(true, null)" />
       </div>
     </div>
 
     <!-- 树形列表 -->
     <div class="tree-list">
-      <div v-if="!files || files.length === 0" class="tree-empty">
-        暂无文件，点击上方图标创建
-      </div>
+      <div v-if="!files || files.length === 0" class="tree-empty">暂无文件，点击上方图标创建</div>
 
       <template v-for="node in files" :key="node.id">
         <TreeNode
@@ -40,22 +26,10 @@
     </div>
 
     <!-- 新建对话框 -->
-    <el-dialog
-      v-model="showCreateDialog"
-      :title="createIsDir ? '新建文件夹' : '新建文件'"
-      width="360px"
-    >
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        @keyup.enter="confirmCreate"
-      >
+    <el-dialog v-model="showCreateDialog" :title="createIsDir ? '新建文件夹' : '新建文件'" width="360px">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" @keyup.enter="confirmCreate">
         <el-form-item prop="name">
-          <el-input
-            v-model="createForm.name"
-            :placeholder="createIsDir ? '文件夹名称' : '文件名 (如 main.tex)'"
-          />
+          <el-input v-model="createForm.name" :placeholder="createIsDir ? '文件夹名称' : '文件名 (如 main.tex)'" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -66,12 +40,7 @@
 
     <!-- 重命名对话框 -->
     <el-dialog v-model="showRenameDialog" title="重命名" width="360px">
-      <el-form
-        ref="renameFormRef"
-        :model="renameForm"
-        :rules="renameRules"
-        @keyup.enter="confirmRename"
-      >
+      <el-form ref="renameFormRef" :model="renameForm" :rules="renameRules" @keyup.enter="confirmRename">
         <el-form-item prop="name">
           <el-input v-model="renameForm.name" placeholder="新名称" />
         </el-form-item>
@@ -116,12 +85,7 @@ function openCreateDialog(isDir, parentId) {
 function confirmCreate() {
   createFormRef.value?.validate((valid) => {
     if (!valid) return;
-    emit(
-      "createFile",
-      createForm.name,
-      createParentId.value,
-      createIsDir.value,
-    );
+    emit("createFile", createForm.name, createParentId.value, createIsDir.value);
     showCreateDialog.value = false;
   });
 }

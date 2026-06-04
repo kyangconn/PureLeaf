@@ -62,6 +62,15 @@ func (s *AuthService) Login(username, password string) (*model.User, error) {
 	return &user, nil
 }
 
+// HasUsers 检查系统中是否已有用户 (用于首次启动判断)
+func (s *AuthService) HasUsers() (bool, error) {
+	var count int64
+	if err := s.db.Model(&model.User{}).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("查询用户数量失败: %w", err)
+	}
+	return count > 0, nil
+}
+
 // GetByID 根据 ID 获取用户
 func (s *AuthService) GetByID(id uint) (*model.User, error) {
 	var user model.User
