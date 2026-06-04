@@ -1,4 +1,4 @@
-// Package database 负责数据库连接初始化与自动迁移
+// Package database 提供数据库连接管理（仅 SQLite）
 package database
 
 import (
@@ -9,13 +9,10 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"github.com/kyangconn/goleaf/internal/model"
 )
 
-// New 打开数据库连接并执行自动迁移
-func New(path string, debug bool) (*gorm.DB, error) {
-	// 确保数据库文件所在目录存在
+// NewSQLite 打开 SQLite 数据库连接（纯 Go 驱动，无需 CGO）
+func NewSQLite(path string, debug bool) (*gorm.DB, error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("创建数据库目录失败: %w", err)
@@ -31,16 +28,6 @@ func New(path string, debug bool) (*gorm.DB, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("连接数据库失败: %w", err)
-	}
-
-	// 自动迁移表结构
-	if err := db.AutoMigrate(
-		&model.User{},
-		&model.Project{},
-		&model.Collaborator{},
-		&model.File{},
-	); err != nil {
-		return nil, fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
 	return db, nil

@@ -1,27 +1,23 @@
 package handler
 
 import (
-	"log"
-	"net/http"
-	"time"
+	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/kyangconn/goleaf/internal/model"
+	"github.com/kyangconn/goleaf/internal/domain"
+	"github.com/kyangconn/goleaf/internal/repository"
 	"github.com/kyangconn/goleaf/internal/service"
 )
 
 // AuthHandler 认证相关 HTTP 处理器
 type AuthHandler struct {
-	svc        *service.AuthService
-	jwtSecret  string
-	jwtExpHour int
+	svc service.AuthService
 }
 
 // NewAuthHandler 创建认证处理器
-func NewAuthHandler(svc *service.AuthService, jwtSecret string, jwtExpHour int) *AuthHandler {
-	return &AuthHandler{svc: svc, jwtSecret: jwtSecret, jwtExpHour: jwtExpHour}
+func NewAuthHandler(svc service.AuthService) *AuthHandler {
+	return &AuthHandler{svc: svc}
 }
 
 // ---- 请求/响应结构体 ----
@@ -37,11 +33,7 @@ type loginReq struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type authResp struct {
-	Token string `json:"token"`
-	User  userVO `json:"user"`
-}
-
+// userVO 用户视图对象（不含密码哈希）
 type userVO struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
@@ -49,96 +41,85 @@ type userVO struct {
 }
 
 // Register 用户注册
+// POST /api/auth/register
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req registerReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效: " + err.Error()})
+		BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
-	user, err := h.svc.Register(req.Username, req.Email, req.Password)
+	user, token, err := h.svc.Register(req.Username, req.Email, req.Password)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrUsernameExists) || errors.Is(err, repository.ErrEmailExists) {
+			Error(c, 409, err)
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	token, err := h.generateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成令牌失败"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, authResp{
-		Token: token,
-		User:  toUserVO(user),
+	Created(c, gin.H{
+		"token": token,
+		"user":  toUserVO(user),
 	})
 }
 
 // Login 用户登录
+// POST /api/auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效: " + err.Error()})
+		BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
-	user, err := h.svc.Login(req.Username, req.Password)
+	user, token, err := h.svc.Login(req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrUserNotFound) {
+			Unauthorized(c, "用户名或密码错误")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	token, err := h.generateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成令牌失败"})
-		return
-	}
-
-	c.JSON(http.StatusOK, authResp{
-		Token: token,
-		User:  toUserVO(user),
+	Success(c, gin.H{
+		"token": token,
+		"user":  toUserVO(user),
 	})
 }
 
-// Status 返回系统初始化状态 (是否有用户)
+// Status 返回系统初始化状态（是否有用户）
+// GET /api/auth/status
 func (h *AuthHandler) Status(c *gin.Context) {
 	hasUsers, err := h.svc.HasUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		Error(c, 500, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"has_users": hasUsers})
+	Success(c, gin.H{"has_users": hasUsers})
 }
 
 // Me 获取当前登录用户信息
+// GET /api/auth/me
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID := c.GetUint("userID")
 
 	user, err := h.svc.GetByID(userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrUserNotFound) {
+			NotFound(c, "用户不存在")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, toUserVO(user))
+	Success(c, toUserVO(user))
 }
 
-// generateToken 生成 JWT Token
-func (h *AuthHandler) generateToken(userID uint) (string, error) {
-	now := time.Now()
-	exp := now.Add(time.Duration(h.jwtExpHour) * time.Hour)
-	log.Printf("[JWT] 生成 Token: userID=%d jwtExpHour=%d exp=%d", userID, h.jwtExpHour, exp.Unix())
-
-	claims := jwt.MapClaims{
-		"user_id": userID,
-		"exp":     exp.Unix(),
-		"iat":     now.Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(h.jwtSecret))
-}
-
-func toUserVO(u *model.User) userVO {
+func toUserVO(u *domain.User) userVO {
 	return userVO{
 		ID:       u.ID,
 		Username: u.Username,

@@ -3,7 +3,6 @@ package service
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,161 +10,183 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
-	"github.com/kyangconn/goleaf/internal/model"
+	"github.com/kyangconn/goleaf/internal/domain"
+	"github.com/kyangconn/goleaf/internal/repository"
 )
 
-// FileService 文件管理与 LaTeX 编译服务
-type FileService struct {
-	db        *gorm.DB
-	compiler  string // LaTeX 编译器命令
-	compileTO int    // 编译超时秒数
-	outputDir string // 编译输出目录
+// FileService 文件管理与编译业务接口
+type FileService interface {
+	GetTree(projectID, userID uint) ([]*domain.File, error)
+	GetContent(fileID, projectID, userID uint) (*domain.File, error)
+	Create(projectID, userID uint, name string, parentID *uint, isDir bool) (*domain.File, error)
+	UpdateContent(fileID, projectID, userID uint, content string) (*domain.File, error)
+	Rename(fileID, projectID, userID uint, newName string) (*domain.File, error)
+	Delete(fileID, projectID, userID uint) error
+	Compile(projectID, userID uint) (pdfPath, logOutput string, err error)
 }
 
-// NewFileService 创建文件服务实例
-func NewFileService(db *gorm.DB, compiler string, timeout int, outputDir string) *FileService {
-	return &FileService{
-		db:        db,
-		compiler:  compiler,
-		compileTO: timeout,
-		outputDir: outputDir,
+type fileService struct {
+	fileRepo    repository.FileRepository
+	projectRepo repository.ProjectRepository
+	compiler    string
+	compileTO   int
+	outputDir   string
+}
+
+// NewFileService 创建文件服务
+func NewFileService(
+	fileRepo repository.FileRepository,
+	projectRepo repository.ProjectRepository,
+	compiler string, timeout int, outputDir string,
+) FileService {
+	return &fileService{
+		fileRepo:    fileRepo,
+		projectRepo: projectRepo,
+		compiler:    compiler,
+		compileTO:   timeout,
+		outputDir:   outputDir,
 	}
 }
 
-// GetTree 获取项目文件树 (带权限校验)
-func (s *FileService) GetTree(projectID, userID uint) ([]*model.File, error) {
-	// 校验用户对该项目有权限
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+func (s *fileService) checkAccess(projectID, userID uint) error {
+	project, err := s.projectRepo.FindByID(projectID)
+	if err != nil {
+		return err
+	}
+	if project.OwnerID == userID {
+		return nil
+	}
+	if ok, _ := s.projectRepo.IsCollaborator(projectID, userID); ok {
+		return nil
+	}
+	return repository.ErrForbidden
+}
+
+// ---- 文件树 ----
+
+func (s *fileService) GetTree(projectID, userID uint) ([]*domain.File, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
 		return nil, err
 	}
-
-	var flat []model.File
-	if err := s.db.Where("project_id = ?", projectID).
-		Order("is_dir DESC, name ASC").Find(&flat).Error; err != nil {
-		return nil, fmt.Errorf("查询文件列表失败: %w", err)
-	}
-
-	// 构建树形结构
-	return buildTree(flat, nil), nil
-}
-
-// GetContent 获取单个文件内容 (带权限校验)
-func (s *FileService) GetContent(fileID, projectID, userID uint) (*model.File, error) {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+	files, err := s.fileRepo.FindByProjectID(projectID)
+	if err != nil {
 		return nil, err
 	}
-
-	var file model.File
-	if err := s.db.Where("id = ? AND project_id = ?", fileID, projectID).First(&file).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("文件不存在")
-		}
-		return nil, fmt.Errorf("查询文件失败: %w", err)
-	}
-	return &file, nil
+	return buildTree(files, nil), nil
 }
 
-// Create 在项目中创建文件或文件夹
-func (s *FileService) Create(projectID, userID uint, name string, parentID *uint, isDir bool) (*model.File, error) {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+func (s *fileService) GetContent(fileID, projectID, userID uint) (*domain.File, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
 		return nil, err
 	}
-
-	file := &model.File{
-		ProjectID: projectID,
-		ParentID:  parentID,
-		Name:      name,
-		IsDir:     isDir,
-		Content:   "",
+	file, err := s.fileRepo.FindByID(fileID)
+	if err != nil {
+		return nil, err
 	}
-
-	if err := s.db.Create(file).Error; err != nil {
-		return nil, fmt.Errorf("创建文件失败: %w", err)
+	if file.ProjectID != projectID {
+		return nil, repository.ErrFileNotFound
 	}
 	return file, nil
 }
 
-// UpdateContent 更新文件内容
-func (s *FileService) UpdateContent(fileID, projectID, userID uint, content string) (*model.File, error) {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+// ---- 增删改 ----
+
+func (s *fileService) Create(projectID, userID uint, name string, parentID *uint, isDir bool) (*domain.File, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
 		return nil, err
 	}
-
-	var file model.File
-	if err := s.db.Where("id = ? AND project_id = ? AND is_dir = ?", fileID, projectID, false).First(&file).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("文件不存在或为文件夹")
-		}
-		return nil, fmt.Errorf("查询文件失败: %w", err)
+	file := &domain.File{ProjectID: projectID, ParentID: parentID, Name: name, IsDir: isDir}
+	if err := s.fileRepo.Create(file); err != nil {
+		return nil, err
 	}
+	return file, nil
+}
 
+func (s *fileService) UpdateContent(fileID, projectID, userID uint, content string) (*domain.File, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
+		return nil, err
+	}
+	file, err := s.fileRepo.FindByID(fileID)
+	if err != nil {
+		return nil, err
+	}
+	if file.IsDir {
+		return nil, repository.ErrFileNotFound
+	}
 	file.Content = content
-	if err := s.db.Save(&file).Error; err != nil {
-		return nil, fmt.Errorf("保存文件失败: %w", err)
-	}
-	return &file, nil
-}
-
-// Rename 重命名文件或文件夹
-func (s *FileService) Rename(fileID, projectID, userID uint, newName string) (*model.File, error) {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+	if err := s.fileRepo.Update(file); err != nil {
 		return nil, err
 	}
-
-	var file model.File
-	if err := s.db.Where("id = ? AND project_id = ?", fileID, projectID).First(&file).Error; err != nil {
-		return nil, fmt.Errorf("文件不存在: %w", err)
-	}
-
-	file.Name = newName
-	if err := s.db.Save(&file).Error; err != nil {
-		return nil, fmt.Errorf("重命名失败: %w", err)
-	}
-	return &file, nil
+	return file, nil
 }
 
-// Delete 删除文件或文件夹 (递归删除子节点)
-func (s *FileService) Delete(fileID, projectID, userID uint) error {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+func (s *fileService) Rename(fileID, projectID, userID uint, newName string) (*domain.File, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
+		return nil, err
+	}
+	file, err := s.fileRepo.FindByID(fileID)
+	if err != nil {
+		return nil, err
+	}
+	file.Name = newName
+	if err := s.fileRepo.Update(file); err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func (s *fileService) Delete(fileID, projectID, userID uint) error {
+	if err := s.checkAccess(projectID, userID); err != nil {
 		return err
 	}
-
-	// 递归收集所有待删除的 ID
-	ids, err := s.collectDescendantIDs(projectID, fileID)
+	// 递归收集子孙 ID
+	ids, err := s.collectDescendants(projectID, fileID)
 	if err != nil {
 		return err
 	}
 	ids = append(ids, fileID)
-
-	return s.db.Where("id IN ?", ids).Delete(&model.File{}).Error
+	return s.fileRepo.DeleteByIDs(ids)
 }
 
-// Compile 编译 LaTeX 工程，返回 PDF 路径和编译日志
-func (s *FileService) Compile(projectID, userID uint) (pdfPath string, logOutput string, err error) {
-	if err := s.checkProjectAccess(projectID, userID); err != nil {
+func (s *fileService) collectDescendants(projectID, parentID uint) ([]uint, error) {
+	children, err := s.fileRepo.FindByParentID(projectID, parentID)
+	if err != nil {
+		return nil, err
+	}
+	var ids []uint
+	for _, c := range children {
+		ids = append(ids, c.ID)
+		sub, _ := s.collectDescendants(projectID, c.ID)
+		ids = append(ids, sub...)
+	}
+	return ids, nil
+}
+
+// ---- 编译 ----
+
+func (s *fileService) Compile(projectID, userID uint) (string, string, error) {
+	if err := s.checkAccess(projectID, userID); err != nil {
 		return "", "", err
 	}
 
-	// 1. 获取主文件 (优先 main.tex，否则第一个 .tex 文件)
+	// 找主文件
 	mainFile, err := s.findMainFile(projectID)
 	if err != nil {
 		return "", "", err
 	}
 
-	// 2. 创建临时编译目录
-	workDir := filepath.Join(s.outputDir, fmt.Sprintf("project_%d", projectID))
+	// 编译工作目录
+	workDir := filepath.Join(s.outputDir, fmt.Sprintf("%d", projectID))
 	if err := os.MkdirAll(workDir, 0755); err != nil {
-		return "", "", fmt.Errorf("创建编译目录失败: %w", err)
-	}
-
-	// 3. 将所有项目文件写入工作目录
-	if err := s.writeProjectFiles(projectID, workDir); err != nil {
 		return "", "", err
 	}
 
-	// 4. 运行 LaTeX 编译器
+	// 写入所有文件
+	if err := s.writeFiles(projectID, workDir); err != nil {
+		return "", "", err
+	}
+
+	// 运行编译器
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.compileTO)*time.Second)
 	defer cancel()
 
@@ -181,21 +202,20 @@ func (s *FileService) Compile(projectID, userID uint) (pdfPath string, logOutput
 	cmd.Stderr = &stderr
 
 	runErr := cmd.Run()
-	logOutput = stdout.String()
+	logOutput := stdout.String()
 	if stderr.Len() > 0 {
 		logOutput += "\n[stderr]\n" + stderr.String()
 	}
 
 	if runErr != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return "", logOutput, errors.New("编译超时")
+			return "", logOutput, fmt.Errorf("编译超时")
 		}
-		// 编译警告/错误不视为致命错误，仍然尝试返回 PDF
 	}
 
-	// 5. 查找生成的 PDF
+	// 查找 PDF
 	pdfName := strings.TrimSuffix(mainFile, ".tex") + ".pdf"
-	pdfPath = filepath.Join(workDir, pdfName)
+	pdfPath := filepath.Join(workDir, pdfName)
 	if _, statErr := os.Stat(pdfPath); os.IsNotExist(statErr) {
 		return "", logOutput, fmt.Errorf("编译失败，未生成 PDF:\n%s", logOutput)
 	}
@@ -203,90 +223,58 @@ func (s *FileService) Compile(projectID, userID uint) (pdfPath string, logOutput
 	return pdfPath, logOutput, nil
 }
 
-// checkProjectAccess 校验用户对项目的访问权限 (拥有者或协作者)
-func (s *FileService) checkProjectAccess(projectID, userID uint) error {
-	var project model.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
-		return errors.New("项目不存在")
+func (s *fileService) findMainFile(projectID uint) (string, error) {
+	files, err := s.fileRepo.FindTeXFiles(projectID)
+	if err != nil {
+		return "", err
 	}
-	if project.OwnerID == userID {
-		return nil
-	}
-	// 预留: 检查协作者表
-	var count int64
-	s.db.Model(&model.Collaborator{}).
-		Where("project_id = ? AND user_id = ?", projectID, userID).
-		Count(&count)
-	if count == 0 {
-		return errors.New("无权限访问该项目")
-	}
-	return nil
-}
-
-// findMainFile 寻找主 .tex 文件 (优先 main.tex)
-func (s *FileService) findMainFile(projectID uint) (string, error) {
-	var files []model.File
-	if err := s.db.Where("project_id = ? AND is_dir = ?", projectID, false).
-		Find(&files).Error; err != nil {
-		return "", fmt.Errorf("查询项目文件失败: %w", err)
-	}
-
 	if len(files) == 0 {
-		return "", errors.New("项目中没有任何 .tex 文件")
+		return "", fmt.Errorf("项目中没有任何 .tex 文件")
 	}
-
-	// 优先 main.tex
 	for _, f := range files {
 		if strings.EqualFold(f.Name, "main.tex") {
 			return f.Name, nil
 		}
 	}
-	// 否则取第一个 .tex 文件
 	for _, f := range files {
 		if strings.HasSuffix(strings.ToLower(f.Name), ".tex") {
 			return f.Name, nil
 		}
 	}
-
-	return "", errors.New("项目中找不到 .tex 文件")
+	return "", fmt.Errorf("项目中找不到 .tex 文件")
 }
 
-// writeProjectFiles 将项目的所有文件写入磁盘目录 (递归)
-func (s *FileService) writeProjectFiles(projectID uint, baseDir string) error {
-	var files []model.File
-	if err := s.db.Where("project_id = ?", projectID).Find(&files).Error; err != nil {
+func (s *fileService) writeFiles(projectID uint, baseDir string) error {
+	files, err := s.fileRepo.FindByProjectID(projectID)
+	if err != nil {
 		return err
 	}
 
-	// 构建 ID -> File 映射，用于路径拼接
-	fileMap := make(map[uint]*model.File)
+	// 构建 ID → File 映射
+	fileMap := make(map[uint]*domain.File)
 	for i := range files {
 		fileMap[files[i].ID] = &files[i]
 	}
 
 	for _, f := range files {
 		if f.IsDir {
-			continue // 目录稍后由文件自动创建
+			continue
 		}
-
-		relPath := s.buildRelativePath(f.ID, fileMap)
+		relPath := s.buildPath(f.ID, fileMap)
 		fullPath := filepath.Join(baseDir, relPath)
-
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			return fmt.Errorf("创建目录失败: %w", err)
+			return err
 		}
 		if err := os.WriteFile(fullPath, []byte(f.Content), 0644); err != nil {
-			return fmt.Errorf("写入文件失败: %w", err)
+			return err
 		}
 	}
 	return nil
 }
 
-// buildRelativePath 根据父级关系构建文件相对路径
-func (s *FileService) buildRelativePath(fileID uint, fileMap map[uint]*model.File) string {
+func (s *fileService) buildPath(fileID uint, fileMap map[uint]*domain.File) string {
 	var parts []string
 	currentID := &fileID
-
 	for {
 		f, ok := fileMap[*currentID]
 		if !ok {
@@ -298,35 +286,14 @@ func (s *FileService) buildRelativePath(fileID uint, fileMap map[uint]*model.Fil
 		}
 		currentID = f.ParentID
 	}
-
 	return filepath.Join(parts...)
 }
 
-// collectDescendantIDs 递归收集某节点的所有子孙 ID
-func (s *FileService) collectDescendantIDs(projectID, parentID uint) ([]uint, error) {
-	var children []model.File
-	if err := s.db.Where("project_id = ? AND parent_id = ?", projectID, parentID).Find(&children).Error; err != nil {
-		return nil, err
-	}
-
-	var ids []uint
-	for _, child := range children {
-		ids = append(ids, child.ID)
-		subIDs, err := s.collectDescendantIDs(projectID, child.ID)
-		if err != nil {
-			return nil, err
-		}
-		ids = append(ids, subIDs...)
-	}
-	return ids, nil
-}
-
-// buildTree 将扁平文件列表构建为树形结构
-func buildTree(files []model.File, parentID *uint) []*model.File {
-	var result []*model.File
+// buildTree 扁平列表 → 树
+func buildTree(files []domain.File, parentID *uint) []*domain.File {
+	var result []*domain.File
 	for i := range files {
 		f := &files[i]
-		// 比较 parent_id (处理 nil 的情况)
 		if (parentID == nil && f.ParentID == nil) || (parentID != nil && f.ParentID != nil && *f.ParentID == *parentID) {
 			f.Children = buildTree(files, &f.ID)
 			result = append(result, f)

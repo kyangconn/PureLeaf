@@ -3,6 +3,7 @@
 </template>
 
 <script setup>
+import "@/styles/variables.css";
 // 根组件 — 路由出口
 </script>
 

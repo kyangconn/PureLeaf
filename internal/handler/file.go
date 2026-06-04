@@ -1,22 +1,23 @@
 package handler
 
 import (
-	"net/http"
+	"errors"
 	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/kyangconn/goleaf/internal/repository"
 	"github.com/kyangconn/goleaf/internal/service"
 )
 
 // FileHandler 文件管理 HTTP 处理器
 type FileHandler struct {
-	svc *service.FileService
+	svc service.FileService
 }
 
 // NewFileHandler 创建文件管理处理器
-func NewFileHandler(svc *service.FileService) *FileHandler {
+func NewFileHandler(svc service.FileService) *FileHandler {
 	return &FileHandler{svc: svc}
 }
 
@@ -37,149 +38,198 @@ type renameFileReq struct {
 }
 
 // GetTree 获取项目文件树
+// GET /api/projects/:id/files
 func (h *FileHandler) GetTree(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的项目 ID"})
+		BadRequest(c, "无效的项目 ID")
 		return
 	}
 
 	tree, err := h.svc.GetTree(uint(projectID), userID)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权访问该项目")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, tree)
+	Success(c, tree)
 }
 
 // GetContent 获取单个文件内容
+// GET /api/projects/:id/files/:fileId
 func (h *FileHandler) GetContent(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, fileID, err := parseProjectAndFileID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		BadRequest(c, "无效的 ID 参数")
 		return
 	}
 
 	file, err := h.svc.GetContent(fileID, projectID, userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrFileNotFound) {
+			NotFound(c, "文件不存在")
+			return
+		}
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权访问该文件")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, file)
+	Success(c, file)
 }
 
 // Create 在项目中创建文件或文件夹
+// POST /api/projects/:id/files
 func (h *FileHandler) Create(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的项目 ID"})
+		BadRequest(c, "无效的项目 ID")
 		return
 	}
 
 	var req createFileReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效: " + err.Error()})
+		BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
 	file, err := h.svc.Create(uint(projectID), userID, req.Name, req.ParentID, req.IsDir)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权在该项目中创建文件")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, file)
+	Created(c, file)
 }
 
 // UpdateContent 更新文件内容
+// PUT /api/projects/:id/files/:fileId
 func (h *FileHandler) UpdateContent(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, fileID, err := parseProjectAndFileID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		BadRequest(c, "无效的 ID 参数")
 		return
 	}
 
 	var req updateContentReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效: " + err.Error()})
+		BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
 	file, err := h.svc.UpdateContent(fileID, projectID, userID, req.Content)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrFileNotFound) {
+			NotFound(c, "文件不存在")
+			return
+		}
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权修改该文件")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, file)
+	Success(c, file)
 }
 
 // Rename 重命名文件或文件夹
+// PATCH /api/projects/:id/files/:fileId/rename
 func (h *FileHandler) Rename(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, fileID, err := parseProjectAndFileID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		BadRequest(c, "无效的 ID 参数")
 		return
 	}
 
 	var req renameFileReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效: " + err.Error()})
+		BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
 	file, err := h.svc.Rename(fileID, projectID, userID, req.Name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrFileNotFound) {
+			NotFound(c, "文件不存在")
+			return
+		}
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权重命名该文件")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, file)
+	Success(c, file)
 }
 
 // Delete 删除文件或文件夹
+// DELETE /api/projects/:id/files/:fileId
 func (h *FileHandler) Delete(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, fileID, err := parseProjectAndFileID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		BadRequest(c, "无效的 ID 参数")
 		return
 	}
 
 	if err := h.svc.Delete(fileID, projectID, userID); err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		if errors.Is(err, repository.ErrFileNotFound) {
+			NotFound(c, "文件不存在")
+			return
+		}
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权删除该文件")
+			return
+		}
+		Error(c, 500, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "文件已删除"})
+	Success(c, gin.H{"message": "文件已删除"})
 }
 
 // Compile 编译 LaTeX 项目并返回 PDF
+// POST /api/projects/:id/compile
 func (h *FileHandler) Compile(c *gin.Context) {
 	userID := c.GetUint("userID")
 	projectID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的项目 ID"})
+		BadRequest(c, "无效的项目 ID")
 		return
 	}
 
 	pdfPath, logOutput, err := h.svc.Compile(uint(projectID), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-			"log":   logOutput,
-		})
+		if errors.Is(err, repository.ErrForbidden) {
+			Forbidden(c, "无权编译该项目")
+			return
+		}
+		Error(c, 500, err)
+		// 额外附加编译日志供调试
+		_ = logOutput
 		return
 	}
 
-	// 返回 PDF 文件
 	c.Header("Content-Type", "application/pdf")
 	c.Header("Content-Disposition", "inline; filename=\""+filepath.Base(pdfPath)+"\"")
 	c.File(pdfPath)

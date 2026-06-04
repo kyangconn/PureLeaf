@@ -1,18 +1,16 @@
 <template>
-  <div class="editor-page">
-    <!-- 顶部工具栏 -->
-    <header class="editor-header">
-      <div class="header-left">
-        <el-button text :icon="ArrowLeft" @click="$router.push('/')">返回</el-button>
-        <span class="project-name">{{ project?.name || "加载中..." }}</span>
-      </div>
-      <div class="header-right">
-        <el-button type="primary" :icon="Upload" :loading="compiling" @click="handleCompile">
-          {{ compiling ? "编译中..." : "编译" }}
-        </el-button>
-        <el-button :icon="RefreshRight" @click="refreshTree">刷新</el-button>
-      </div>
-    </header>
+  <BaseLayout dark>
+    <template #header-left>
+      <el-button text :icon="ArrowLeft" @click="$router.push('/')">返回</el-button>
+      <span class="project-name">{{ project?.name || "加载中..." }}</span>
+    </template>
+
+    <template #header-right>
+      <el-button type="primary" :icon="Upload" :loading="compiling" @click="handleCompile">
+        {{ compiling ? "编译中..." : "编译" }}
+      </el-button>
+      <el-button :icon="RefreshRight" @click="refreshTree">刷新</el-button>
+    </template>
 
     <!-- 主体三栏布局 -->
     <div class="editor-body">
@@ -61,17 +59,18 @@
         <PdfPreview :pdf-url="pdfUrl" :log="compileLog" @close="showPdf = false" />
       </aside>
     </div>
-  </div>
+  </BaseLayout>
 </template>
 
 <script setup>
 import { ArrowLeft, Upload, RefreshRight, Close } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
-import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { projectAPI, fileAPI } from "../api";
 import FileTree from "../components/FileTree.vue";
 import PdfPreview from "../components/PdfPreview.vue";
+import BaseLayout from "../layouts/BaseLayout.vue";
 
 // ---- CodeMirror 动态导入 (减少初始加载体积) ----
 let EditorView, EditorState, basicSetup, oneDark;
@@ -130,7 +129,7 @@ async function refreshTree() {
 // ---- CodeMirror 初始化 ----
 
 async function initCodeMirror() {
-  const [{ basicSetup: bs }, { EditorView: ev, keymap }, { EditorState: es }, { oneDark: od }] = await Promise.all([
+  const [{ basicSetup: bs }, { EditorView: ev }, { EditorState: es }, { oneDark: od }] = await Promise.all([
     import("codemirror"),
     import("@codemirror/view"),
     import("@codemirror/state"),
@@ -306,29 +305,12 @@ function startResize(panel, e) {
 </script>
 
 <style scoped>
-.editor-page {
-  height: 100%;
+.editor-body {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  background: #1e1e1e;
+  overflow: hidden;
+  background: var(--color-bg-dark);
   color: #d4d4d4;
-}
-
-.editor-header {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  background: #252526;
-  border-bottom: 1px solid #3c3c3c;
-  flex-shrink: 0;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .project-name {
@@ -336,34 +318,23 @@ function startResize(panel, e) {
   font-weight: 500;
 }
 
-.header-right {
-  display: flex;
-  gap: 8px;
-}
-
-.editor-body {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
 .sidebar {
-  background: #252526;
-  border-right: 1px solid #3c3c3c;
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-border-dark);
   flex-shrink: 0;
   overflow-y: auto;
 }
 
 .resizer {
   width: 4px;
-  background: #3c3c3c;
+  background: var(--color-border-dark);
   cursor: col-resize;
   flex-shrink: 0;
   transition: background 0.2s;
 }
 
 .resizer:hover {
-  background: #667eea;
+  background: var(--color-primary);
 }
 
 .editor-main {
@@ -378,7 +349,7 @@ function startResize(panel, e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1e1e1e;
+  background: var(--color-bg-dark);
 }
 
 .editor-wrapper {
@@ -395,7 +366,7 @@ function startResize(panel, e) {
   justify-content: space-between;
   padding: 0 12px;
   background: #2d2d2d;
-  border-bottom: 1px solid #3c3c3c;
+  border-bottom: 1px solid var(--color-border-dark);
   font-size: 13px;
   flex-shrink: 0;
 }
@@ -416,7 +387,7 @@ function startResize(panel, e) {
 
 .pdf-panel {
   background: #fff;
-  border-left: 1px solid #3c3c3c;
+  border-left: 1px solid var(--color-border-dark);
   flex-shrink: 0;
 }
 </style>
