@@ -5,7 +5,7 @@ go 1.26.3
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/crypto v0.48.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
