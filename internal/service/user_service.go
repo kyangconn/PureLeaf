@@ -8,25 +8,25 @@ import (
 	"github.com/kyangconn/goleaf/pkg/password"
 )
 
-// AuthService 认证业务接口
-type AuthService interface {
+// UserService 认证业务接口
+type UserService interface {
 	Register(username, email, pwd string) (*domain.User, string, error)
 	Login(username, pwd string) (*domain.User, string, error)
 	GetByID(id uint) (*domain.User, error)
 	HasUsers() (bool, error)
 }
 
-type authService struct {
+type userService struct {
 	userRepo   repository.UserRepository
 	jwtManager *jwt.Manager
 }
 
-// NewAuthService 创建认证服务
-func NewAuthService(userRepo repository.UserRepository, jwtMgr *jwt.Manager) AuthService {
-	return &authService{userRepo: userRepo, jwtManager: jwtMgr}
+// NewUserService 创建认证服务
+func NewUserService(userRepo repository.UserRepository, jwtMgr *jwt.Manager) UserService {
+	return &userService{userRepo: userRepo, jwtManager: jwtMgr}
 }
 
-func (s *authService) Register(username, email, pwd string) (*domain.User, string, error) {
+func (s *userService) Register(username, email, pwd string) (*domain.User, string, error) {
 	hash, err := password.Hash(pwd)
 	if err != nil {
 		return nil, "", err
@@ -45,7 +45,7 @@ func (s *authService) Register(username, email, pwd string) (*domain.User, strin
 	return user, token, nil
 }
 
-func (s *authService) Login(username, pwd string) (*domain.User, string, error) {
+func (s *userService) Login(username, pwd string) (*domain.User, string, error) {
 	user, err := s.userRepo.FindByUsername(username)
 	if err != nil {
 		return nil, "", repository.ErrUserNotFound
@@ -63,11 +63,11 @@ func (s *authService) Login(username, pwd string) (*domain.User, string, error) 
 	return user, token, nil
 }
 
-func (s *authService) GetByID(id uint) (*domain.User, error) {
+func (s *userService) GetByID(id uint) (*domain.User, error) {
 	return s.userRepo.FindByID(id)
 }
 
-func (s *authService) HasUsers() (bool, error) {
+func (s *userService) HasUsers() (bool, error) {
 	count, err := s.userRepo.Count()
 	return count > 0, err
 }

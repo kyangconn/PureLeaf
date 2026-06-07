@@ -19,9 +19,10 @@ type Config struct {
 
 // ServerConfig 服务相关配置
 type ServerConfig struct {
-	Port    int    // 监听端口
-	Mode    string // 运行模式: debug, release, test
-	LogFile string // 日志文件路径 (空=仅 stdout)
+	Port           int      // 监听端口
+	Mode           string   // 运行模式: debug, release, test
+	LogFile        string   // 日志文件路径 (空=仅 stdout)
+	TrustedProxies []string // 信任的代理/管理 IP，允许访问 setup（如 127.0.0.1、内网 IP）
 }
 
 // DatabaseConfig 数据库相关配置
@@ -74,9 +75,10 @@ func Load(configPath string) (*Config, error) {
 	// 直接逐项读取（避免 Unmarshal 的类型转换陷阱）
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:    v.GetInt("server.port"),
-			Mode:    v.GetString("server.mode"),
-			LogFile: v.GetString("server.log_file"),
+			Port:           v.GetInt("server.port"),
+			Mode:           v.GetString("server.mode"),
+			LogFile:        v.GetString("server.log_file"),
+			TrustedProxies: v.GetStringSlice("server.trusted_proxies"),
 		},
 		Database: DatabaseConfig{
 			Path: v.GetString("database.path"),
@@ -133,6 +135,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.mode", "debug")
 	v.SetDefault("server.log_file", "")
+	v.SetDefault("server.trusted_proxies", []string{"127.0.0.1", "::1"})
 	v.SetDefault("database.path", "./data/goleaf.db")
 	v.SetDefault("jwt.secret", "change-me-in-production")
 	v.SetDefault("jwt.expire_hour", 24)

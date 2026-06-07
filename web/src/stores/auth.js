@@ -5,7 +5,7 @@ import { authAPI } from "../api";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref(localStorage.getItem("token") || "");
-  const user = ref(JSON.parse(localStorage.getItem("user") || "null"));
+  const user = ref(parseStoredUser());
 
   const isLoggedIn = computed(() => !!token.value);
 
@@ -48,3 +48,14 @@ export const useAuthStore = defineStore("auth", () => {
 
   return { token, user, isLoggedIn, register, login, logout, fetchUser };
 });
+
+function parseStoredUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw || raw === "undefined") return null;
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem("user"); // 清除损坏的缓存
+    return null;
+  }
+}

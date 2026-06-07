@@ -14,7 +14,7 @@
           <el-button type="primary" class="auth-btn" :loading="loading" @click="handleLogin">登 录</el-button>
         </el-form-item>
       </el-form>
-      <p class="auth-footer">还没有账号？<router-link to="/register">立即注册</router-link></p>
+      <p class="auth-footer">goleaf — 轻量级 LaTeX 在线编辑器</p>
     </div>
   </div>
 </template>
@@ -53,49 +53,11 @@ async function handleLogin() {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use "@/styles/variables" as *;
+@use "@/styles/mixins" as *;
+
 .auth-page {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.auth-card {
-  width: 400px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-}
-
-.auth-title {
-  text-align: center;
-  font-size: 32px;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.auth-subtitle {
-  text-align: center;
-  color: #909399;
-  font-size: 14px;
-  margin-bottom: 32px;
-}
-
-.auth-btn {
-  width: 100%;
-}
-
-.auth-footer {
-  text-align: center;
-  font-size: 14px;
-  color: #909399;
-}
-
-.auth-footer a {
-  color: #667eea;
-  text-decoration: none;
+  @include auth-page;
 }
 </style>

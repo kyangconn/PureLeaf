@@ -58,7 +58,7 @@ import { DocumentAdd, FolderAdd } from "@element-plus/icons-vue";
 import { ref, reactive, provide } from "vue";
 import TreeNode from "./TreeNode.vue";
 
-const props = defineProps({
+defineProps({
   files: { type: Array, default: () => [] },
   activeFileId: { type: Number, default: null },
 });
@@ -120,28 +120,23 @@ provide("fileTreeActions", {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use "@/styles/variables" as *;
+@use "@/styles/mixins" as *;
+
 .file-tree {
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
 }
 
 .tree-toolbar {
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  border-bottom: 1px solid #3c3c3c;
+  @include panel-header(35px);
 }
 
 .tree-title {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #999;
-  font-weight: 600;
 }
 
 .tree-actions {
@@ -158,7 +153,7 @@ provide("fileTreeActions", {
 .tree-empty {
   padding: 16px;
   text-align: center;
-  color: #999;
+  color: $color-text-dark-dim;
   font-size: 12px;
 }
 </style>

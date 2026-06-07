@@ -16,9 +16,18 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
-// 响应拦截器 — 统一错误处理
+// 响应拦截器 — 统一解包后端 Response{code,message,data} 信封
 http.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // 后端统一响应格式: {code, message, data} → 提取 data 字段
+    const body = res.data;
+    if (body && typeof body === "object" && "code" in body) {
+      if ("data" in body && body.data !== undefined) {
+        res.data = body.data;
+      }
+    }
+    return res;
+  },
   (err) => {
     const msg = err.response?.data?.error || err.message || "请求失败";
     ElMessage.error(msg);

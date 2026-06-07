@@ -29,26 +29,19 @@ defineProps({
 defineEmits(["close"]);
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use "@/styles/variables" as *;
+@use "@/styles/mixins" as *;
+
 .pdf-preview {
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   background: #fff;
-  color: #303133;
+  color: $color-text;
 }
 
 .pdf-header {
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  border-bottom: 1px solid #e4e7ed;
-  font-size: 12px;
-  font-weight: 600;
-  color: #606266;
-  flex-shrink: 0;
+  @include panel-header(35px);
 }
 
 .pdf-content {
@@ -64,22 +57,18 @@ defineEmits(["close"]);
 
 .pdf-empty {
   height: 100%;
-  display: flex;
+  @include flex-center;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   color: #c0c4cc;
   gap: 12px;
-}
-
-.pdf-empty p {
-  font-size: 13px;
+  p {
+    font-size: 13px;
+  }
 }
 
 .compile-log {
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   padding: 12px;
   overflow-y: auto;
   background: #fafafa;
@@ -89,13 +78,13 @@ defineEmits(["close"]);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #303133;
+  color: $color-text;
 }
 
 .log-text {
   flex: 1;
   font-size: 12px;
-  font-family: "Consolas", "Courier New", monospace;
+  font-family: Consolas, "Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-all;
   color: #606266;

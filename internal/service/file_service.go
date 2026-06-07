@@ -30,21 +30,21 @@ type fileService struct {
 	projectRepo repository.ProjectRepository
 	compiler    string
 	compileTO   int
-	outputDir   string
+	dataDir     string // data/projects — 项目文件根目录
 }
 
 // NewFileService 创建文件服务
 func NewFileService(
 	fileRepo repository.FileRepository,
 	projectRepo repository.ProjectRepository,
-	compiler string, timeout int, outputDir string,
+	compiler string, timeout int, dataDir string,
 ) FileService {
 	return &fileService{
 		fileRepo:    fileRepo,
 		projectRepo: projectRepo,
 		compiler:    compiler,
 		compileTO:   timeout,
-		outputDir:   outputDir,
+		dataDir:     dataDir,
 	}
 }
 
@@ -86,6 +86,20 @@ func (s *fileService) GetContent(fileID, projectID, userID uint) (*domain.File, 
 	if file.ProjectID != projectID {
 		return nil, repository.ErrFileNotFound
 	}
+	if file.IsDir {
+		return file, nil
+	}
+
+	relPath, err := s.computePath(fileID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	fullPath := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID), relPath)
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取文件内容失败: %w", err)
+	}
+	file.Content = string(data)
 	return file, nil
 }
 
@@ -98,6 +112,25 @@ func (s *fileService) Create(projectID, userID uint, name string, parentID *uint
 	file := &domain.File{ProjectID: projectID, ParentID: parentID, Name: name, IsDir: isDir}
 	if err := s.fileRepo.Create(file); err != nil {
 		return nil, err
+	}
+
+	// 写入磁盘
+	relPath, err := s.computePath(file.ID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	fullPath := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID), relPath)
+	if isDir {
+		if err := os.MkdirAll(fullPath, 0755); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(fullPath, []byte(""), 0644); err != nil {
+			return nil, err
+		}
 	}
 	return file, nil
 }
@@ -113,10 +146,19 @@ func (s *fileService) UpdateContent(fileID, projectID, userID uint, content stri
 	if file.IsDir {
 		return nil, repository.ErrFileNotFound
 	}
-	file.Content = content
-	if err := s.fileRepo.Update(file); err != nil {
+
+	relPath, err := s.computePath(fileID, projectID)
+	if err != nil {
 		return nil, err
 	}
+	fullPath := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID), relPath)
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		return nil, err
+	}
+	file.Content = content
 	return file, nil
 }
 
@@ -128,8 +170,28 @@ func (s *fileService) Rename(fileID, projectID, userID uint, newName string) (*d
 	if err != nil {
 		return nil, err
 	}
+
+	// 算出旧路径
+	oldRel, err := s.computePath(fileID, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 更新 DB 名称
 	file.Name = newName
 	if err := s.fileRepo.Update(file); err != nil {
+		return nil, err
+	}
+
+	// 算新路径并重命名磁盘文件
+	newRel, err := s.computePath(fileID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	baseDir := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID))
+	oldPath := filepath.Join(baseDir, oldRel)
+	newPath := filepath.Join(baseDir, newRel)
+	if err := os.Rename(oldPath, newPath); err != nil {
 		return nil, err
 	}
 	return file, nil
@@ -139,13 +201,28 @@ func (s *fileService) Delete(fileID, projectID, userID uint) error {
 	if err := s.checkAccess(projectID, userID); err != nil {
 		return err
 	}
+
+	// 算出路径
+	relPath, err := s.computePath(fileID, projectID)
+	if err != nil {
+		return err
+	}
+
 	// 递归收集子孙 ID
 	ids, err := s.collectDescendants(projectID, fileID)
 	if err != nil {
 		return err
 	}
 	ids = append(ids, fileID)
-	return s.fileRepo.DeleteByIDs(ids)
+
+	// 删 DB 记录
+	if err := s.fileRepo.DeleteByIDs(ids); err != nil {
+		return err
+	}
+
+	// 删磁盘
+	fullPath := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID), relPath)
+	return os.RemoveAll(fullPath)
 }
 
 func (s *fileService) collectDescendants(projectID, parentID uint) ([]uint, error) {
@@ -175,16 +252,8 @@ func (s *fileService) Compile(projectID, userID uint) (string, string, error) {
 		return "", "", err
 	}
 
-	// 编译工作目录
-	workDir := filepath.Join(s.outputDir, fmt.Sprintf("%d", projectID))
-	if err := os.MkdirAll(workDir, 0755); err != nil {
-		return "", "", err
-	}
-
-	// 写入所有文件
-	if err := s.writeFiles(projectID, workDir); err != nil {
-		return "", "", err
-	}
+	// 文件已在磁盘，直接以项目目录为工作目录
+	workDir := filepath.Join(s.dataDir, fmt.Sprintf("%d", projectID))
 
 	// 运行编译器
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.compileTO)*time.Second)
@@ -244,35 +313,17 @@ func (s *fileService) findMainFile(projectID uint) (string, error) {
 	return "", fmt.Errorf("项目中找不到 .tex 文件")
 }
 
-func (s *fileService) writeFiles(projectID uint, baseDir string) error {
+// computePath 根据 fileID 和 projectID 计算文件在项目内的相对路径
+func (s *fileService) computePath(fileID, projectID uint) (string, error) {
 	files, err := s.fileRepo.FindByProjectID(projectID)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	// 构建 ID → File 映射
 	fileMap := make(map[uint]*domain.File)
 	for i := range files {
 		fileMap[files[i].ID] = &files[i]
 	}
 
-	for _, f := range files {
-		if f.IsDir {
-			continue
-		}
-		relPath := s.buildPath(f.ID, fileMap)
-		fullPath := filepath.Join(baseDir, relPath)
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(fullPath, []byte(f.Content), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *fileService) buildPath(fileID uint, fileMap map[uint]*domain.File) string {
 	var parts []string
 	currentID := &fileID
 	for {
@@ -286,7 +337,7 @@ func (s *fileService) buildPath(fileID uint, fileMap map[uint]*domain.File) stri
 		}
 		currentID = f.ParentID
 	}
-	return filepath.Join(parts...)
+	return filepath.Join(parts...), nil
 }
 
 // buildTree 扁平列表 → 树

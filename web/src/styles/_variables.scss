@@ -1,0 +1,30 @@
+// === 亮色主题 ===
+$color-primary: #409eff;
+$color-primary-light: #ecf5ff;
+$color-bg: #f5f7fa;
+$color-border: #e4e7ed;
+$color-text: #303133;
+$color-text-secondary: #909399;
+
+// === 暗色主题（VS Code 风格）===
+$color-editor-bg: #1e1e1e;
+$color-panel-bg: #2d2d30;
+$color-sidebar: #252526;
+$color-border-dark: #3c3c3c;
+$color-tab-active: #1e1e1e;
+$color-tab-inactive: #2d2d30;
+$color-text-dark: #cccccc;
+$color-text-dark-dim: #858585;
+$color-accent: #007acc;
+
+// === 布局尺寸 ===
+$header-height: 48px;
+$toolbar-height: 36px;
+
+// === 文件树 ===
+$tree-row-height: 28px;
+$tree-indent: 16px;
+$tree-hover-bg: #2a2d2e;
+$tree-active-bg: #37373d;
+$tree-icon-color: #888;
+$tree-dir-color: #dcb67a;

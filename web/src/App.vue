@@ -1,37 +1,25 @@
 <template>
-  <router-view />
+  <!-- 无需 layout 的页面 -->
+  <router-view v-if="$route.meta.plain" />
+  <!-- 带全局顶栏的页面 -->
+  <BaseLayout v-else :dark="$route.name === 'Editor'" @create-project="handleCreate">
+    <router-view />
+  </BaseLayout>
 </template>
 
 <script setup>
-import "@/styles/variables.css";
-// 根组件 — 路由出口
+import { useRouter } from "vue-router";
+import { projectAPI } from "./api";
+import BaseLayout from "./layouts/BaseLayout.vue";
+
+const router = useRouter();
+
+async function handleCreate() {
+  try {
+    const { data } = await projectAPI.create({ name: "未命名项目" });
+    router.push(`/project/${data.id}`);
+  } catch {
+    /* handled by interceptor */
+  }
+}
 </script>
-
-<style>
-/* 全局样式重置 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html,
-body,
-#app {
-  height: 100%;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #909399;
-}
-</style>

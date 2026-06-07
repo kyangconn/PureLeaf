@@ -4,6 +4,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/kyangconn/goleaf/internal/config"
 	"github.com/kyangconn/goleaf/internal/handler"
 	"github.com/kyangconn/goleaf/internal/middleware"
 	jwtpkg "github.com/kyangconn/goleaf/pkg/jwt"
@@ -11,10 +12,11 @@ import (
 
 // Setup 注册所有 API 路由，返回 *gin.Engine
 func Setup(
-	authH *handler.AuthHandler,
+	userH *handler.UserHandler,
 	projectH *handler.ProjectHandler,
 	fileH *handler.FileHandler,
 	jwtMgr *jwtpkg.Manager,
+	cfg *config.Config,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -24,15 +26,19 @@ func Setup(
 	{
 		auth := api.Group("/auth")
 		{
-			auth.GET("/status", authH.Status)
-			auth.POST("/register", authH.Register)
-			auth.POST("/login", authH.Login)
+			auth.GET("/status", userH.Status)
+			auth.POST("/login", userH.Login)
+
+			// setup（注册）接口仅允许受信任 IP 访问
+			setup := auth.Group("")
+			setup.Use(middleware.SetupIPFilter(cfg.Server.TrustedProxies))
+			setup.POST("/register", userH.Register)
 		}
 
 		authorized := api.Group("")
 		authorized.Use(middleware.JWTAuth(jwtMgr))
 		{
-			authorized.GET("/auth/me", authH.Me)
+			authorized.GET("/auth/me", userH.Me)
 
 			projects := authorized.Group("/projects")
 			{

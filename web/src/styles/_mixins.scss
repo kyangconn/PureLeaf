@@ -1,0 +1,106 @@
+@use "variables" as *;
+
+// 居中
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 两端对齐
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 纵向 flex 容器
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// 文字省略号
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 页面全高容器
+@mixin full-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// 暗色面板表头（文件树标题栏、PDF 标题栏、编辑器 tab 栏等）
+@mixin panel-header($height: $toolbar-height) {
+  height: $height;
+  @include flex-between;
+  padding: 0 10px;
+  border-bottom: 1px solid $color-border-dark;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: $color-text-dark-dim;
+}
+
+// 自定义滚动条
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+// 认证页面（登录/setup 共享）
+@mixin auth-page {
+  height: 100%;
+  @include flex-center;
+  background: $color-bg;
+
+  .auth-card {
+    width: 400px;
+    padding: 40px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-title {
+    text-align: center;
+    font-size: 28px;
+    color: $color-text;
+    margin-bottom: 4px;
+  }
+  .auth-subtitle {
+    text-align: center;
+    color: $color-text-secondary;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .auth-btn {
+    width: 100%;
+  }
+  .auth-footer {
+    text-align: center;
+    font-size: 13px;
+    color: #b0b3bb;
+    margin-top: 8px;
+  }
+}
+
+// 响应式隐藏（桌面端可见）
+@mixin desktop-only {
+  @media (max-width: 768px) {
+    display: none;
+  }
+}

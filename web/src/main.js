@@ -2,7 +2,7 @@ import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ElementPlus from "element-plus";
 import { createPinia } from "pinia";
 import "element-plus/dist/index.css";
-import "./styles/variables.css";
+import "./styles/index.scss";
 // 应用入口 — 挂载 Vue 实例
 import { createApp } from "vue";
 

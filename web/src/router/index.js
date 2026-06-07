@@ -7,24 +7,18 @@ const routes = [
     path: "/setup",
     name: "Setup",
     component: () => import("../views/Setup.vue"),
-    meta: { setup: true },
+    meta: { setup: true, plain: true },
   },
   {
     path: "/login",
     name: "Login",
     component: () => import("../views/Login.vue"),
-    meta: { guest: true },
-  },
-  {
-    path: "/register",
-    name: "Register",
-    component: () => import("../views/Register.vue"),
-    meta: { guest: true },
+    meta: { guest: true, plain: true },
   },
   {
     path: "/",
-    name: "Dashboard",
-    component: () => import("../views/Dashboard.vue"),
+    name: "Home",
+    component: () => import("../views/Home.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -39,6 +33,13 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+// ---- 工具函数 ----
+
+function isLocalhost() {
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname === "::1";
+}
 
 // ---- 全局状态 ----
 let systemStatus = null; // null=未检查, { has_users: bool }
@@ -55,8 +56,7 @@ async function checkSystemStatus() {
   return systemStatus;
 }
 
-// 由认证页面调用，在注册/登录成功后重置状态缓存
-// (否则 setup 后系统已有用户但缓存仍为 false，导致重定向死循环)
+// 由 setup 页面调用，完成后重置状态缓存
 export function resetSystemStatus() {
   systemStatus = null;
 }
@@ -72,9 +72,20 @@ router.beforeEach(async (to, _from, next) => {
 
   const needsSetup = systemStatus && !systemStatus.has_users;
 
-  // 系统未初始化 → 强制跳转 setup (setup 页本身和 API 调用除外)
-  if (needsSetup && !to.meta.setup) {
-    return next("/setup");
+  // 系统未初始化 → 仅 localhost 可访问 setup，其余跳登录
+  if (needsSetup) {
+    if (to.meta.setup) {
+      if (isLocalhost()) {
+        return next();
+      }
+      // 非 localhost 不允许 setup，跳登录页
+      return next("/login");
+    }
+    // 非 setup 页但系统未初始化 → localhost 跳 setup，其余跳登录
+    if (isLocalhost()) {
+      return next("/setup");
+    }
+    return next("/login");
   }
 
   // 系统已初始化，setup 页不可再访问

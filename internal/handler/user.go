@@ -8,16 +8,17 @@ import (
 	"github.com/kyangconn/goleaf/internal/domain"
 	"github.com/kyangconn/goleaf/internal/repository"
 	"github.com/kyangconn/goleaf/internal/service"
+	resp "github.com/kyangconn/goleaf/pkg/response"
 )
 
-// AuthHandler 认证相关 HTTP 处理器
-type AuthHandler struct {
-	svc service.AuthService
+// UserHandler 用户相关 HTTP 处理器
+type UserHandler struct {
+	svc service.UserService
 }
 
-// NewAuthHandler 创建认证处理器
-func NewAuthHandler(svc service.AuthService) *AuthHandler {
-	return &AuthHandler{svc: svc}
+// NewUserHandler 创建用户处理器
+func NewUserHandler(svc service.UserService) *UserHandler {
+	return &UserHandler{svc: svc}
 }
 
 // ---- 请求/响应结构体 ----
@@ -42,24 +43,24 @@ type userVO struct {
 
 // Register 用户注册
 // POST /api/auth/register
-func (h *AuthHandler) Register(c *gin.Context) {
+func (h *UserHandler) Register(c *gin.Context) {
 	var req registerReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		BadRequest(c, "请求参数无效: "+err.Error())
+		resp.BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
 	user, token, err := h.svc.Register(req.Username, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, repository.ErrUsernameExists) || errors.Is(err, repository.ErrEmailExists) {
-			Error(c, 409, err)
+			resp.Fail(c, 409, err)
 			return
 		}
-		Error(c, 500, err)
+		resp.Fail(c, 500, err)
 		return
 	}
 
-	Created(c, gin.H{
+	resp.Created(c, gin.H{
 		"token": token,
 		"user":  toUserVO(user),
 	})
@@ -67,24 +68,24 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // Login 用户登录
 // POST /api/auth/login
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *UserHandler) Login(c *gin.Context) {
 	var req loginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		BadRequest(c, "请求参数无效: "+err.Error())
+		resp.BadRequest(c, "请求参数无效: "+err.Error())
 		return
 	}
 
 	user, token, err := h.svc.Login(req.Username, req.Password)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
-			Unauthorized(c, "用户名或密码错误")
+			resp.Unauthorized(c, "用户名或密码错误")
 			return
 		}
-		Error(c, 500, err)
+		resp.Fail(c, 500, err)
 		return
 	}
 
-	Success(c, gin.H{
+	resp.OK(c, gin.H{
 		"token": token,
 		"user":  toUserVO(user),
 	})
@@ -92,31 +93,31 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Status 返回系统初始化状态（是否有用户）
 // GET /api/auth/status
-func (h *AuthHandler) Status(c *gin.Context) {
+func (h *UserHandler) Status(c *gin.Context) {
 	hasUsers, err := h.svc.HasUsers()
 	if err != nil {
-		Error(c, 500, err)
+		resp.Fail(c, 500, err)
 		return
 	}
-	Success(c, gin.H{"has_users": hasUsers})
+	resp.OK(c, gin.H{"has_users": hasUsers})
 }
 
 // Me 获取当前登录用户信息
 // GET /api/auth/me
-func (h *AuthHandler) Me(c *gin.Context) {
+func (h *UserHandler) Me(c *gin.Context) {
 	userID := c.GetUint("userID")
 
 	user, err := h.svc.GetByID(userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
-			NotFound(c, "用户不存在")
+			resp.NotFound(c, "用户不存在")
 			return
 		}
-		Error(c, 500, err)
+		resp.Fail(c, 500, err)
 		return
 	}
 
-	Success(c, toUserVO(user))
+	resp.OK(c, toUserVO(user))
 }
 
 func toUserVO(u *domain.User) userVO {

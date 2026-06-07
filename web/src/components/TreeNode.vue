@@ -100,7 +100,10 @@ async function handleDelete() {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@use "@/styles/variables" as *;
+@use "@/styles/mixins" as *;
+
 .tree-node {
   user-select: none;
 }
@@ -108,50 +111,44 @@ async function handleDelete() {
 .node-row {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: $tree-row-height;
   padding-right: 4px;
   cursor: pointer;
   font-size: 13px;
-  color: #ccc;
+  color: $color-text-dark;
   transition: background 0.1s;
-}
 
-.node-row:hover {
-  background: #2a2d2e;
-}
-
-.node-row.active {
-  background: #37373d;
-}
-
-.node-row.active .node-name {
-  color: #fff;
+  &:hover {
+    background: $tree-hover-bg;
+  }
+  &.active {
+    background: $tree-active-bg;
+  }
+  &.active .node-name {
+    color: #fff;
+  }
 }
 
 .node-arrow {
   width: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center;
   flex-shrink: 0;
-  color: #888;
+  color: $tree-icon-color;
 }
 
 .node-icon {
   margin-right: 4px;
   flex-shrink: 0;
-  color: #888;
+  color: $tree-icon-color;
 }
 
 .node-row.is-dir .node-icon {
-  color: #dcb67a;
+  color: $tree-dir-color;
 }
 
 .node-name {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include text-ellipsis;
 }
 
 .node-actions {
@@ -165,9 +162,8 @@ async function handleDelete() {
 
 .action-btn {
   padding: 2px;
-  color: #888;
+  color: $tree-icon-color;
 }
-
 .danger-item {
   color: #f56c6c;
 }

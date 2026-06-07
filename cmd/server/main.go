@@ -36,7 +36,7 @@ var webDist embed.FS
 // ---- 依赖容器 ----
 
 type dependencies struct {
-	Auth    *handler.AuthHandler
+	User    *handler.UserHandler
 	Project *handler.ProjectHandler
 	File    *handler.FileHandler
 	JWT     *jwtpkg.Manager
@@ -71,7 +71,7 @@ func main() {
 	}()
 
 	deps := initDependencies(db, cfg)
-	r := router.Setup(deps.Auth, deps.Project, deps.File, deps.JWT)
+	r := router.Setup(deps.User, deps.Project, deps.File, deps.JWT, cfg)
 	configureStaticAssets(r)
 	startServer(r, cfg)
 }
@@ -95,13 +95,13 @@ func initDependencies(db *gorm.DB, cfg *config.Config) *dependencies {
 	projectRepo := repository.NewProjectRepository(db)
 	fileRepo := repository.NewFileRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, jwtMgr)
-	projectSvc := service.NewProjectService(db, projectRepo, fileRepo)
-	outputDir := filepath.Join(filepath.Dir(cfg.Database.Path), "projects")
-	fileSvc := service.NewFileService(fileRepo, projectRepo, cfg.Latex.Compiler, cfg.Latex.Timeout, outputDir)
+	userSvc := service.NewUserService(userRepo, jwtMgr)
+	dataDir := filepath.Join(filepath.Dir(cfg.Database.Path), "projects")
+	projectSvc := service.NewProjectService(projectRepo, fileRepo, dataDir)
+	fileSvc := service.NewFileService(fileRepo, projectRepo, cfg.Latex.Compiler, cfg.Latex.Timeout, dataDir)
 
 	return &dependencies{
-		Auth:    handler.NewAuthHandler(authSvc),
+		User:    handler.NewUserHandler(userSvc),
 		Project: handler.NewProjectHandler(projectSvc),
 		File:    handler.NewFileHandler(fileSvc),
 		JWT:     jwtMgr,
