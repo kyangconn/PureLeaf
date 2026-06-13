@@ -12,6 +12,11 @@ const routes = [
     name: "Editor",
     path: "/project/:id",
   },
+  {
+    component: () => import("../views/Settings.vue"),
+    name: "Settings",
+    path: "/settings",
+  },
 ];
 
 const router = createRouter({

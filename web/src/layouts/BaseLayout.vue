@@ -11,7 +11,16 @@
       </div>
       <div class="header-right">
         <slot name="header-right" />
-        <el-button type="primary" size="small" :icon="Plus" @click="$emit('create-project')">新建</el-button>
+        <el-button type="primary" :icon="Plus" class="create-project-btn" @click="$emit('create-project')">
+          新建项目
+        </el-button>
+        <el-button
+          :icon="Setting"
+          class="settings-btn"
+          title="设置"
+          aria-label="设置"
+          @click="$emit('open-settings')"
+        />
       </div>
     </header>
     <main class="layout-main">
@@ -21,13 +30,13 @@
 </template>
 
 <script setup>
-import { Plus } from "@element-plus/icons-vue";
+import { Plus, Setting } from "@element-plus/icons-vue";
 
 defineProps({
   dark: { default: false, type: Boolean },
 });
 
-defineEmits(["create-project"]);
+defineEmits(["create-project", "open-settings"]);
 </script>
 
 <style lang="scss" scoped>
@@ -67,6 +76,18 @@ defineEmits(["create-project"]);
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.create-project-btn {
+  height: 34px;
+  padding: 0 14px;
+  font-weight: 500;
+}
+
+.settings-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
 }
 
 .brand {

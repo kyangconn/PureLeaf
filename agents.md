@@ -6,7 +6,7 @@ AI agent / contributor conventions for this project. Read before making changes.
 
 ## Project Overview
 
-Desktop LaTeX editor: **Wails v2 (Go + Vue 3)**. Single user, no auth, files on disk.
+Desktop LaTeX editor: **Wails v2 (Go + Vue 3 + TypeScript)**. Single user, no auth, files on disk.
 
 ---
 
@@ -19,31 +19,42 @@ Desktop LaTeX editor: **Wails v2 (Go + Vue 3)**. Single user, no auth, files on 
 | Frontend | **pnpm** (NOT npm, NOT yarn) |
 | Backend  | Go modules (`go mod`)        |
 
-### 2. Development
+### 2. Development Commands
 
 ```bash
-wails dev          # 热重载开发（前端 + 后端）
-wails build        # 生产构建
+wails dev          # 热重载开发（Wails + Vite）
+wails build        # 生产构建桌面应用
 go build ./...     # 仅编译 Go（不打包前端）
+go test ./...      # 后端测试
+make build         # pnpm build + wails build
+make lint          # go fmt + go vet + 前端 ESLint fix
 ```
+
+`wails.json` 已配置 `frontend:dir` 为 `web`，Wails 前端安装/构建命令必须继续使用 pnpm。
 
 ### 3. Frontend
 
-- **Root**: `frontend/`
-- **UI**: Element Plus 组件库。不要引入其他 UI 框架。
-- **SCSS**: 组件用 `<style lang="scss" scoped>`。`@/styles/_variables.scss` 提供所有色值/尺寸变量，`@/styles/_mixins.scss` 提供 `flex-center`、`text-ellipsis`、`panel-header`、`auth-page` 等可复用 mixin。
-- **路径别名**: `@` → `frontend/src/`
-- **API 调用**: 统一从 `api/index.js` 导入，内部走 Wails Go 绑定：`window.go.main.App.*`。不要直接写 HTTP 请求。
+- **Root**: `web/`
+- **Stack**: Vue 3 + TypeScript + Vite + Vue Router + Element Plus + CodeMirror 6。
+- **UI**: Element Plus 组件库和 `@element-plus/icons-vue`。不要引入其他 UI 框架。
+- **SCSS**: 组件样式使用 `<style lang="scss" scoped>`。`@/styles/_variables.scss` 提供色值/尺寸变量，`@/styles/_mixins.scss` 提供 `flex-center`、`flex-between`、`flex-column`、`text-ellipsis`、`full-page`、`panel-header`、`custom-scrollbar`、`desktop-only` 等复用 mixin。
+- **路径别名**: `@` -> `web/src/`，`@wailsjs` -> `web/wailsjs/go/`。
+- **API 调用**: 组件统一从 `web/src/api/index.ts` 导入 `projectAPI` / `fileAPI`。内部调用 Wails 生成绑定 `@wailsjs/transport/App`。不要在组件里直接调 `window.go...`，也不要新增 HTTP/axios 请求。
+- **Wails 绑定**: `web/wailsjs/` 是生成代码，不要手改；后端导出方法变更后用 Wails 重新生成。
+- **返回结构**: Wails 绑定直接返回领域对象或数组，例如 `Promise<domain.Project>`、`Promise<Array<domain.File>>`，不是 axios 风格 `{ data }`，除非 API 层显式包装。
 
 ### 4. Backend
 
-- **入口**: `main.go`（Wails 要求根目录）
+- **入口**: `main.go`（Wails 要求根目录），嵌入 `web/dist`。
 - **依赖注入**: `internal/factory/factory.go` 的 `factory.New()` 是**唯一初始化点**。不要在别处创建 service/repository。
-- **transport**: `internal/transport/wails/app.go` 是薄壳，只做参数转发，**不写业务逻辑**。
-- **service**: `internal/service/` 是业务逻辑层，所有核心代码写在这里。
+- **transport**: `internal/transport/app.go` 是 Wails 薄壳，只做参数转发和 Wails 返回值适配，**不写业务逻辑**。
+- **service**: `internal/service/` 是业务逻辑层，项目/文件/编译等核心代码写在这里。
 - **repository**: `internal/repository/` 是数据访问层（GORM + SQLite）。
 - **domain**: `internal/domain/` 是领域模型，一个文件一个模型。
-- **文件存储**: 项目文件落盘到 `data/projects/{id}/`，SQLite 只存文件和目录的元数据（name、parent_id、is_dir）。读文件用 `os.ReadFile`，写文件用 `os.WriteFile`。
+- **config**: `internal/config/config.go` 使用 Viper，优先级为环境变量 > `config.yaml` > 默认值。环境变量前缀为 `GOLEAF_`。
+- **database**: `internal/database/database.go` 使用纯 Go SQLite 驱动 `github.com/glebarez/sqlite`。
+- **文件存储**: 项目文件落盘到 `data/projects/{id}/`，SQLite 只存文件和目录元数据（name、parent_id、is_dir）。读文件用 `os.ReadFile`，写文件用 `os.WriteFile`。
+- **LaTeX 编译**: 通过配置的 `latex.compiler` 执行 `pdflatex` / `xelatex` / `lualatex` 等命令，超时由 `latex.timeout` 控制。
 - **单用户**: 桌面应用，无用户系统、无登录、无 JWT。所有项目共享。
 
 ### 5. File Naming
@@ -51,19 +62,29 @@ go build ./...     # 仅编译 Go（不打包前端）
 | 层 | 命名规则 | 示例 |
 |----|---------|------|
 | `domain/` | `{entity}.go` | `project.go`, `file.go` |
-| `repository/` | `{entity}_repo.go` | `project_repo.go` |
-| `service/` | `{entity}_service.go` | `project_service.go` |
-| `transport/` | 按用途 | `wails/app.go` |
-| frontend components | PascalCase | `ProjectList.vue` |
+| `repository/` | `{entity}_repo.go` | `project_repo.go`, `file_repo.go` |
+| `service/` | `{entity}_service.go` | `project_service.go`, `file_service.go` |
+| `transport/` | 按用途 | `app.go` |
+| frontend components | PascalCase | `ProjectList.vue`, `FileTree.vue` |
 
-### 6. Code Style
+### 6. Current Product State
 
-- **Go**: Standard `gofmt`. 文件命名全小写下划线。
-- **Vue**: ESLint + Prettier。
+- 已迁移到 Wails 桌面端，前后端通过 Wails 函数绑定通信。
+- 已有项目列表、项目创建/删除/重命名、文件树、新建/重命名/删除文件、CodeMirror 编辑、2 秒自动保存、LaTeX 编译和 PDF iframe 预览。
+- 已移除用户系统和 HTTP/axios 依赖；Vite proxy 配置仅是开发残留，不代表当前业务应走 HTTP。
+- `todo.md` 记录后续方向：文件快照/Git 集成、测试、CI、PDF 预览增强、多 Tab、LaTeX 补全、模板、图片拖入、主题切换。
 
-### 7. What NOT to do
+### 7. Code Style
 
-- ❌ 不要在 `transport/` 里写业务逻辑 — 一律委托给 `service/`
-- ❌ 不要在组件里直接调 `window.go.main.App.*` — 统一走 `api/index.js`
-- ❌ 不要把文件内容存 SQLite — 磁盘才是真实数据源
-- ❌ 不要用 `npm` / `yarn` — 只用 `pnpm`
+- **Go**: Standard `gofmt`。文件命名全小写下划线。
+- **Vue/TS**: ESLint + Prettier。保持 Composition API 写法。
+- **Comments**: 只在复杂逻辑前写必要说明，不写重复代码含义的注释。
+
+### 8. What NOT to do
+
+- 不要在 `transport/` 里写业务逻辑，一律委托给 `service/`。
+- 不要在组件里直接调 `window.go...`，统一走 `web/src/api/index.ts`。
+- 不要把文件内容存 SQLite，磁盘才是真实数据源。
+- 不要用 `npm` / `yarn`，只用 `pnpm`。
+- 不要手动修改 `web/wailsjs/` 生成文件。
+- 不要重新引入用户、认证、JWT、多用户权限等 Web 服务概念。

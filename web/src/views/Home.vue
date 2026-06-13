@@ -33,6 +33,10 @@ import { projectAPI } from "../api";
 import Loading from "../components/Loading.vue";
 import ProjectList from "../components/ProjectList.vue";
 
+defineOptions({
+  name: "HomeView",
+});
+
 const router = useRouter();
 const projects = ref([]);
 const loading = ref(true);
@@ -49,7 +53,7 @@ onMounted(fetchProjects);
 async function fetchProjects() {
   loading.value = true;
   try {
-    const { data } = await projectAPI.list();
+    const data = await projectAPI.list();
     projects.value = data || [];
   } catch {
     /* handled */

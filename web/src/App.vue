@@ -1,6 +1,6 @@
 <template>
   <!-- 带全局顶栏的页面 -->
-  <BaseLayout :dark="$route.name === 'Editor'" @create-project="handleCreate">
+  <BaseLayout :dark="$route.name === 'Editor'" @create-project="handleCreate" @open-settings="handleOpenSettings">
     <router-view />
   </BaseLayout>
 </template>
@@ -20,5 +20,9 @@ async function handleCreate() {
   } catch {
     /* handled */
   }
+}
+
+function handleOpenSettings() {
+  router.push("/settings");
 }
 </script>

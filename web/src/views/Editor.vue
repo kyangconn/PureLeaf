@@ -78,6 +78,10 @@ import { projectAPI, fileAPI } from "../api";
 import FileTree from "../components/FileTree.vue";
 import PdfPreview from "../components/PdfPreview.vue";
 
+defineOptions({
+  name: "EditorView",
+});
+
 let EditorView, EditorState, basicSetup, oneDark;
 
 const route = useRoute();
@@ -137,8 +141,7 @@ onBeforeUnmount(() => {
 
 async function loadProject() {
   try {
-    const { data } = await projectAPI.get(projectId.value);
-    project.value = data;
+    project.value = await projectAPI.get(projectId.value);
   } catch {
     /* handled */
   }
@@ -146,7 +149,7 @@ async function loadProject() {
 
 async function refreshTree() {
   try {
-    const { data } = await fileAPI.getTree(projectId.value);
+    const data = await fileAPI.getTree(projectId.value);
     fileTree.value = data || [];
   } catch {
     /* handled */
@@ -208,7 +211,7 @@ async function handleFileSelect(file) {
   activeFile.value = file;
   activeFileContent.value = "";
   try {
-    const { data } = await fileAPI.getContent(projectId.value, file.id);
+    const data = await fileAPI.getContent(projectId.value, file.id);
     activeFileContent.value = data.content || "";
   } catch {
     /* handled */
@@ -263,19 +266,10 @@ async function handleCompile() {
     if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value);
     pdfUrl.value = URL.createObjectURL(response.data);
     showPdf.value = true;
-    compileLog.value = "编译成功";
+    compileLog.value = response.log || "编译成功";
     ElMessage.success("编译完成");
   } catch (err) {
-    const errorData = err.response?.data;
-    if (errorData instanceof Blob) {
-      const text = await errorData.text();
-      try {
-        const json = JSON.parse(text);
-        compileLog.value = json.log || json.error || text;
-      } catch {
-        compileLog.value = text;
-      }
-    }
+    compileLog.value = err?.message || String(err || "编译失败");
     showPdf.value = true;
   } finally {
     compiling.value = false;

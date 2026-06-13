@@ -14,6 +14,10 @@
 <script setup lang="ts">
 import { Loading } from "@element-plus/icons-vue";
 
+defineOptions({
+  name: "AppLoading",
+});
+
 defineProps({
   fullscreen: {
     default: false,

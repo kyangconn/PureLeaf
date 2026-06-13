@@ -25,7 +25,7 @@ export const fileAPI = {
   compile: async (projectId: number) => {
     const result = await CompileProject(projectId);
     const blob = new Blob([new Uint8Array(result.pdf)], { type: "application/pdf" });
-    return { data: blob };
+    return { data: blob, log: result.log };
   },
   create: (projectId: number, data: { is_dir?: boolean; name: string; parent_id?: number }) =>
     CreateFile(projectId, data.name, data.parent_id ?? null, data.is_dir ?? false),
