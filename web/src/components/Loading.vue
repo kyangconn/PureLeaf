@@ -16,8 +16,8 @@ import { Loading } from "@element-plus/icons-vue";
 
 defineProps({
   fullscreen: {
-    type: Boolean,
     default: false,
+    type: Boolean,
   },
 });
 </script>

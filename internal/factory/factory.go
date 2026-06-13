@@ -18,13 +18,11 @@ import (
 type App struct {
 	Config     *config.Config
 	DB         *gorm.DB
-	UserSvc    service.UserService
 	ProjectSvc service.ProjectService
 	FileSvc    service.FileService
 }
 
-// New 初始化所有依赖并返回 App。
-// 如果是首次运行（无用户），自动创建默认管理员账户。
+// New 初始化所有依赖并返回 App
 func New() (*App, error) {
 	cfg, err := config.Load("")
 	if err != nil {
@@ -36,31 +34,20 @@ func New() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&domain.User{}, &domain.Project{}, &domain.Collaborator{}, &domain.File{}); err != nil {
+	if err := db.AutoMigrate(&domain.Project{}, &domain.File{}); err != nil {
 		return nil, err
 	}
 
-	userRepo := repository.NewUserRepository(db)
 	projectRepo := repository.NewProjectRepository(db)
 	fileRepo := repository.NewFileRepository(db)
 
-	userSvc := service.NewUserService(userRepo)
 	projectSvc := service.NewProjectService(projectRepo, fileRepo, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
 	fileSvc := service.NewFileService(fileRepo, projectRepo, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
-
-	// 如果没有用户，自动创建默认管理员
-	if has, _ := userSvc.HasUsers(); !has {
-		if _, err := userSvc.CreateDefault(); err != nil {
-			return nil, err
-		}
-		pklog.Infof("已创建默认管理员账户")
-	}
 
 	pklog.Infof("goleaf 已就绪")
 	return &App{
 		Config:     cfg,
 		DB:         db,
-		UserSvc:    userSvc,
 		ProjectSvc: projectSvc,
 		FileSvc:    fileSvc,
 	}, nil

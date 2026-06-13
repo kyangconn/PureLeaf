@@ -69,10 +69,11 @@
 </template>
 
 <script setup>
-import { ArrowLeft, Upload, RefreshRight, Close, EditPen } from "@element-plus/icons-vue";
+import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { useRoute } from "vue-router";
+import { ArrowLeft, Upload, RefreshRight, Close, EditPen } from "@element-plus/icons-vue";
+
 import { projectAPI, fileAPI } from "../api";
 import FileTree from "../components/FileTree.vue";
 import PdfPreview from "../components/PdfPreview.vue";
@@ -177,11 +178,11 @@ function createEditor() {
   });
 
   cmView = new EditorView({
+    parent: editorContainer.value,
     state: EditorState.create({
       doc: activeFileContent.value,
       extensions: [basicSetup, oneDark, updateListener, EditorView.lineWrapping],
     }),
-    parent: editorContainer.value,
   });
 }
 
@@ -223,7 +224,7 @@ function closeActiveFile() {
 
 async function handleCreateFile(name, parentId, isDir) {
   try {
-    await fileAPI.create(projectId.value, { name, parent_id: parentId, is_dir: isDir });
+    await fileAPI.create(projectId.value, { is_dir: isDir, name, parent_id: parentId });
     await refreshTree();
   } catch {
     /* handled */

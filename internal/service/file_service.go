@@ -16,13 +16,13 @@ import (
 
 // FileService 文件管理与编译业务接口
 type FileService interface {
-	GetTree(projectID, userID uint) ([]*domain.File, error)
-	GetContent(fileID, projectID, userID uint) (*domain.File, error)
-	Create(projectID, userID uint, name string, parentID *uint, isDir bool) (*domain.File, error)
-	UpdateContent(fileID, projectID, userID uint, content string) (*domain.File, error)
-	Rename(fileID, projectID, userID uint, newName string) (*domain.File, error)
-	Delete(fileID, projectID, userID uint) error
-	Compile(projectID, userID uint) (pdfPath, logOutput string, err error)
+	GetTree(projectID uint) ([]*domain.File, error)
+	GetContent(fileID, projectID uint) (*domain.File, error)
+	Create(projectID uint, name string, parentID *uint, isDir bool) (*domain.File, error)
+	UpdateContent(fileID, projectID uint, content string) (*domain.File, error)
+	Rename(fileID, projectID uint, newName string) (*domain.File, error)
+	Delete(fileID, projectID uint) error
+	Compile(projectID uint) (pdfPath, logOutput string, err error)
 }
 
 type fileService struct {
@@ -48,26 +48,9 @@ func NewFileService(
 	}
 }
 
-func (s *fileService) checkAccess(projectID, userID uint) error {
-	project, err := s.projectRepo.FindByID(projectID)
-	if err != nil {
-		return err
-	}
-	if project.OwnerID == userID {
-		return nil
-	}
-	if ok, _ := s.projectRepo.IsCollaborator(projectID, userID); ok {
-		return nil
-	}
-	return repository.ErrForbidden
-}
-
 // ---- 文件树 ----
 
-func (s *fileService) GetTree(projectID, userID uint) ([]*domain.File, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return nil, err
-	}
+func (s *fileService) GetTree(projectID uint) ([]*domain.File, error) {
 	files, err := s.fileRepo.FindByProjectID(projectID)
 	if err != nil {
 		return nil, err
@@ -75,10 +58,7 @@ func (s *fileService) GetTree(projectID, userID uint) ([]*domain.File, error) {
 	return buildTree(files, nil), nil
 }
 
-func (s *fileService) GetContent(fileID, projectID, userID uint) (*domain.File, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return nil, err
-	}
+func (s *fileService) GetContent(fileID, projectID uint) (*domain.File, error) {
 	file, err := s.fileRepo.FindByID(fileID)
 	if err != nil {
 		return nil, err
@@ -105,10 +85,7 @@ func (s *fileService) GetContent(fileID, projectID, userID uint) (*domain.File, 
 
 // ---- 增删改 ----
 
-func (s *fileService) Create(projectID, userID uint, name string, parentID *uint, isDir bool) (*domain.File, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return nil, err
-	}
+func (s *fileService) Create(projectID uint, name string, parentID *uint, isDir bool) (*domain.File, error) {
 	file := &domain.File{ProjectID: projectID, ParentID: parentID, Name: name, IsDir: isDir}
 	if err := s.fileRepo.Create(file); err != nil {
 		return nil, err
@@ -135,10 +112,7 @@ func (s *fileService) Create(projectID, userID uint, name string, parentID *uint
 	return file, nil
 }
 
-func (s *fileService) UpdateContent(fileID, projectID, userID uint, content string) (*domain.File, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return nil, err
-	}
+func (s *fileService) UpdateContent(fileID, projectID uint, content string) (*domain.File, error) {
 	file, err := s.fileRepo.FindByID(fileID)
 	if err != nil {
 		return nil, err
@@ -162,10 +136,7 @@ func (s *fileService) UpdateContent(fileID, projectID, userID uint, content stri
 	return file, nil
 }
 
-func (s *fileService) Rename(fileID, projectID, userID uint, newName string) (*domain.File, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return nil, err
-	}
+func (s *fileService) Rename(fileID, projectID uint, newName string) (*domain.File, error) {
 	file, err := s.fileRepo.FindByID(fileID)
 	if err != nil {
 		return nil, err
@@ -197,11 +168,7 @@ func (s *fileService) Rename(fileID, projectID, userID uint, newName string) (*d
 	return file, nil
 }
 
-func (s *fileService) Delete(fileID, projectID, userID uint) error {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return err
-	}
-
+func (s *fileService) Delete(fileID, projectID uint) error {
 	// 算出路径
 	relPath, err := s.computePath(fileID, projectID)
 	if err != nil {
@@ -241,11 +208,7 @@ func (s *fileService) collectDescendants(projectID, parentID uint) ([]uint, erro
 
 // ---- 编译 ----
 
-func (s *fileService) Compile(projectID, userID uint) (string, string, error) {
-	if err := s.checkAccess(projectID, userID); err != nil {
-		return "", "", err
-	}
-
+func (s *fileService) Compile(projectID uint) (string, string, error) {
 	// 找主文件
 	mainFile, err := s.findMainFile(projectID)
 	if err != nil {

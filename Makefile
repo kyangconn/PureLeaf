@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-FE_DIR := frontend
+FE_DIR := web
 
 # Detect OS for binary extension
 ifeq ($(OS),Windows_NT)
@@ -12,7 +12,7 @@ else
 endif
 
 help: ## Show available commands
-	@echo "Music Online Go - Available Commands"
+	@echo "goleaf - LaTeX Editor"
 	@echo ""
 	@echo "=== Build ==="
 	@echo "  make build          Build frontend + backend (production)"
@@ -20,7 +20,6 @@ help: ## Show available commands
 	@echo "  make build-be       Build backend only (requires dist/)"
 	@echo ""
 	@echo "=== Develop ==="
-	# @echo "  make dev            Start both frontend and backend dev server"
 	@echo "  make dev-fe         Start frontend dev server (hot reload)"
 	@echo "  make dev-be         Start backend dev server"
 	@echo ""
@@ -58,7 +57,7 @@ test-be: ## Run Go tests
 lint: ## Run all linters (Go fmt + vet + ESLint)
 	go fmt ./...
 	go vet ./...
-	cd $(FE_DIR) && pnpm lint
+	cd $(FE_DIR) && pnpm lint:fix
 
 lint-fe: ## Run ESLint on frontend
 	cd $(FE_DIR) && pnpm eslint . --quiet --fix

@@ -66,14 +66,14 @@
 </template>
 
 <script setup>
-import { ArrowRight, ArrowDown, Folder, FolderOpened, Document, MoreFilled } from "@element-plus/icons-vue";
-import { ElMessageBox } from "element-plus";
 import { ref, inject } from "vue";
+import { ElMessageBox } from "element-plus";
+import { ArrowRight, ArrowDown, Folder, FolderOpened, Document, MoreFilled } from "@element-plus/icons-vue";
 
 const props = defineProps({
-  node: { type: Object, required: true },
-  depth: { type: Number, default: 0 },
-  activeId: { type: Number, default: null },
+  activeId: { default: null, type: Number },
+  depth: { default: 0, type: Number },
+  node: { required: true, type: Object },
 });
 
 const emit = defineEmits(["select", "rename", "delete"]);
@@ -91,7 +91,7 @@ async function handleDelete() {
     await ElMessageBox.confirm(
       `确定要删除「${props.node.name}」吗？${props.node.is_dir ? "其中的所有文件也将被删除。" : ""}`,
       "确认删除",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      { cancelButtonText: "取消", confirmButtonText: "删除", type: "warning" },
     );
     emit("delete", props.node.id);
   } catch {

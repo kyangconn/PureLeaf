@@ -17,9 +17,9 @@ func main() {
 	myapp := leafwails.New()
 
 	err := wails.Run(&options.App{
-		Title:  "goleaf — LaTeX Editor",
-		Width:  1280,
-		Height: 800,
+		Title:     "goleaf — LaTeX Editor",
+		Width:     1280,
+		Height:    800,
 		MinWidth:  900,
 		MinHeight: 600,
 		AssetServer: &assetserver.Options{

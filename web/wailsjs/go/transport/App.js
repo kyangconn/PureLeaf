@@ -22,10 +22,6 @@ export function DeleteProject(arg1) {
   return window['go']['transport']['App']['DeleteProject'](arg1);
 }
 
-export function GetCurrentUser() {
-  return window['go']['transport']['App']['GetCurrentUser']();
-}
-
 export function GetFileContent(arg1, arg2) {
   return window['go']['transport']['App']['GetFileContent'](arg1, arg2);
 }
@@ -36,10 +32,6 @@ export function GetFileTree(arg1) {
 
 export function GetProject(arg1) {
   return window['go']['transport']['App']['GetProject'](arg1);
-}
-
-export function HasUsers() {
-  return window['go']['transport']['App']['HasUsers']();
 }
 
 export function ListProjects() {

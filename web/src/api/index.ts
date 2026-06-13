@@ -4,21 +4,14 @@ import {
   CreateProject,
   DeleteFile,
   DeleteProject,
-  GetCurrentUser,
   GetFileContent,
   GetFileTree,
   GetProject,
-  HasUsers,
   ListProjects,
   RenameFile,
   UpdateFileContent,
   UpdateProject,
 } from "@wailsjs/transport/App";
-
-export const authAPI = {
-  me: () => GetCurrentUser(),
-  status: () => HasUsers().then((has_users) => ({ has_users })),
-};
 
 export const projectAPI = {
   create: (data: { name: string }) => CreateProject(data.name),

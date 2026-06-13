@@ -30,7 +30,7 @@
 import { Document, MoreFilled } from "@element-plus/icons-vue";
 
 defineProps({
-  projects: { type: Array, required: true },
+  projects: { required: true, type: Array },
 });
 
 defineEmits(["select", "rename", "delete"]);
@@ -39,11 +39,11 @@ function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 </script>

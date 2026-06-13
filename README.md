@@ -20,11 +20,10 @@ internal/
 ├── factory/factory.go           集中依赖注入（DB、服务初始化）
 ├── transport/wails/app.go       Wails 方法暴露（薄壳，调 factory）
 ├── service/                     业务逻辑
-│   ├── user_service.go          用户管理
 │   ├── project_service.go       项目 CRUD
 │   └── file_service.go          文件树 + 读写 + 编译
 ├── repository/                  数据访问（GORM + SQLite）
-├── domain/                      领域模型（User, Project, File）
+├── domain/                      领域模型（Project, File）
 ├── config/                      配置加载（Viper）
 ├── database/                    SQLite 初始化
 └── log/                         日志
@@ -59,7 +58,7 @@ window.go.main.App.*      service.*              ← 业务逻辑
 
 - **factory 是唯一的依赖注入点** — 所有服务在此初始化
 - **transport 是薄壳** — Wails 方法只做参数转发，不写业务逻辑
-- **桌面单用户** — 启动时自动创建 `admin` 账户，无需登录
+- **桌面单用户** — 无需账户系统，所有项目共享
 - **文件落盘** — 项目文件存在 `data/projects/{id}/`，SQLite 只存元数据
 
 ## 配置

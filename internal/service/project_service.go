@@ -27,11 +27,11 @@ const defaultMainTex = `\documentclass{article}
 
 // ProjectService 项目业务接口
 type ProjectService interface {
-	Create(name string, ownerID uint) (*domain.Project, error)
-	GetByID(projectID, userID uint) (*domain.Project, error)
-	ListByUser(userID uint) ([]domain.Project, error)
-	Update(projectID, userID uint, name string) (*domain.Project, error)
-	Delete(projectID, userID uint) error
+	Create(name string) (*domain.Project, error)
+	GetByID(projectID uint) (*domain.Project, error)
+	List() ([]domain.Project, error)
+	Update(projectID uint, name string) (*domain.Project, error)
+	Delete(projectID uint) error
 }
 
 type projectService struct {
@@ -45,8 +45,8 @@ func NewProjectService(projectRepo repository.ProjectRepository, fileRepo reposi
 	return &projectService{projectRepo: projectRepo, fileRepo: fileRepo, outputDir: outputDir}
 }
 
-func (s *projectService) Create(name string, ownerID uint) (*domain.Project, error) {
-	project := &domain.Project{Name: name, OwnerID: ownerID}
+func (s *projectService) Create(name string) (*domain.Project, error) {
+	project := &domain.Project{Name: name}
 	if err := s.projectRepo.Create(project); err != nil {
 		return nil, err
 	}
@@ -79,35 +79,18 @@ func (s *projectService) Create(name string, ownerID uint) (*domain.Project, err
 	return project, nil
 }
 
-func (s *projectService) GetByID(projectID, userID uint) (*domain.Project, error) {
+func (s *projectService) GetByID(projectID uint) (*domain.Project, error) {
+	return s.projectRepo.FindByID(projectID)
+}
+
+func (s *projectService) List() ([]domain.Project, error) {
+	return s.projectRepo.FindAll()
+}
+
+func (s *projectService) Update(projectID uint, name string) (*domain.Project, error) {
 	project, err := s.projectRepo.FindByID(projectID)
 	if err != nil {
 		return nil, err
-	}
-	if project.OwnerID != userID {
-		if ok, _ := s.projectRepo.IsCollaborator(projectID, userID); !ok {
-			return nil, repository.ErrForbidden
-		}
-	}
-	return project, nil
-}
-
-func (s *projectService) ListByUser(userID uint) ([]domain.Project, error) {
-	own, err := s.projectRepo.FindByOwnerID(userID)
-	if err != nil {
-		return nil, err
-	}
-	collab, _ := s.projectRepo.FindByCollaborator(userID)
-	return append(own, collab...), nil
-}
-
-func (s *projectService) Update(projectID, userID uint, name string) (*domain.Project, error) {
-	project, err := s.GetByID(projectID, userID)
-	if err != nil {
-		return nil, err
-	}
-	if project.OwnerID != userID {
-		return nil, repository.ErrForbidden
 	}
 	project.Name = name
 	if err := s.projectRepo.Update(project); err != nil {
@@ -116,13 +99,9 @@ func (s *projectService) Update(projectID, userID uint, name string) (*domain.Pr
 	return project, nil
 }
 
-func (s *projectService) Delete(projectID, userID uint) error {
-	project, err := s.GetByID(projectID, userID)
-	if err != nil {
+func (s *projectService) Delete(projectID uint) error {
+	if _, err := s.projectRepo.FindByID(projectID); err != nil {
 		return err
-	}
-	if project.OwnerID != userID {
-		return repository.ErrForbidden
 	}
 
 	if err := s.fileRepo.DeleteByProjectID(projectID); err != nil {

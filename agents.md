@@ -44,15 +44,15 @@ go build ./...     # 仅编译 Go（不打包前端）
 - **repository**: `internal/repository/` 是数据访问层（GORM + SQLite）。
 - **domain**: `internal/domain/` 是领域模型，一个文件一个模型。
 - **文件存储**: 项目文件落盘到 `data/projects/{id}/`，SQLite 只存文件和目录的元数据（name、parent_id、is_dir）。读文件用 `os.ReadFile`，写文件用 `os.WriteFile`。
-- **单用户**: 首次启动自动创建 `admin` 用户（userID=1），所有操作硬编码 userID=1。无登录、无 JWT。
+- **单用户**: 桌面应用，无用户系统、无登录、无 JWT。所有项目共享。
 
 ### 5. File Naming
 
 | 层 | 命名规则 | 示例 |
 |----|---------|------|
-| `domain/` | `{entity}.go` | `user.go`, `file.go` |
-| `repository/` | `{entity}_repo.go` | `user_repo.go` |
-| `service/` | `{entity}_service.go` | `user_service.go` |
+| `domain/` | `{entity}.go` | `project.go`, `file.go` |
+| `repository/` | `{entity}_repo.go` | `project_repo.go` |
+| `service/` | `{entity}_service.go` | `project_service.go` |
 | `transport/` | 按用途 | `wails/app.go` |
 | frontend components | PascalCase | `ProjectList.vue` |
 
@@ -65,6 +65,5 @@ go build ./...     # 仅编译 Go（不打包前端）
 
 - ❌ 不要在 `transport/` 里写业务逻辑 — 一律委托给 `service/`
 - ❌ 不要在组件里直接调 `window.go.main.App.*` — 统一走 `api/index.js`
-- ❌ 不要引入 HTTP 路由、JWT、登录逻辑 — 这是桌面单用户应用
 - ❌ 不要把文件内容存 SQLite — 磁盘才是真实数据源
 - ❌ 不要用 `npm` / `yarn` — 只用 `pnpm`

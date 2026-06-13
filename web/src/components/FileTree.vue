@@ -54,13 +54,14 @@
 </template>
 
 <script setup>
-import { DocumentAdd, FolderAdd } from "@element-plus/icons-vue";
 import { ref, reactive, provide } from "vue";
+import { DocumentAdd, FolderAdd } from "@element-plus/icons-vue";
+
 import TreeNode from "./TreeNode.vue";
 
 defineProps({
-  files: { type: Array, default: () => [] },
-  activeFileId: { type: Number, default: null },
+  activeFileId: { default: null, type: Number },
+  files: { default: () => [], type: Array },
 });
 
 const emit = defineEmits(["select", "createFile", "rename", "delete"]);
@@ -72,7 +73,7 @@ const createParentId = ref(null);
 const createFormRef = ref(null);
 const createForm = reactive({ name: "" });
 const createRules = {
-  name: [{ required: true, message: "请输入名称", trigger: "blur" }],
+  name: [{ message: "请输入名称", required: true, trigger: "blur" }],
 };
 
 function openCreateDialog(isDir, parentId) {
@@ -96,7 +97,7 @@ const renameFileId = ref(null);
 const renameFormRef = ref(null);
 const renameForm = reactive({ name: "" });
 const renameRules = {
-  name: [{ required: true, message: "请输入新名称", trigger: "blur" }],
+  name: [{ message: "请输入新名称", required: true, trigger: "blur" }],
 };
 
 function openRenameDialog(fileId, currentName) {

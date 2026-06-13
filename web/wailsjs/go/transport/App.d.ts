@@ -13,15 +13,11 @@ export function DeleteFile(arg1:number,arg2:number):Promise<void>;
 
 export function DeleteProject(arg1:number):Promise<void>;
 
-export function GetCurrentUser():Promise<domain.User>;
-
 export function GetFileContent(arg1:number,arg2:number):Promise<domain.File>;
 
 export function GetFileTree(arg1:number):Promise<Array<domain.File>>;
 
 export function GetProject(arg1:number):Promise<domain.Project>;
-
-export function HasUsers():Promise<boolean>;
 
 export function ListProjects():Promise<Array<domain.Project>>;
 

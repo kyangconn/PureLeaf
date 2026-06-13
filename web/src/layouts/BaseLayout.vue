@@ -12,7 +12,6 @@
       <div class="header-right">
         <slot name="header-right" />
         <el-button type="primary" size="small" :icon="Plus" @click="$emit('create-project')">新建</el-button>
-        <span class="user-name">{{ authStore.user?.username || 'admin' }}</span>
       </div>
     </header>
     <main class="layout-main">
@@ -23,16 +22,12 @@
 
 <script setup>
 import { Plus } from "@element-plus/icons-vue";
-import { useAuthStore } from "../stores/auth";
 
 defineProps({
-  dark: { type: Boolean, default: false },
+  dark: { default: false, type: Boolean },
 });
 
 defineEmits(["create-project"]);
-
-const authStore = useAuthStore();
-authStore.fetchUser();
 </script>
 
 <style lang="scss" scoped>
@@ -78,15 +73,6 @@ authStore.fetchUser();
   font-size: 18px;
   font-weight: 700;
   color: $color-primary;
-}
-
-.user-name {
-  font-size: 14px;
-  color: #606266;
-  cursor: pointer;
-  .layout-header--dark & {
-    color: $color-text-dark;
-  }
 }
 
 .layout-main {

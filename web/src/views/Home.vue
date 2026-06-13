@@ -25,9 +25,10 @@
 </template>
 
 <script setup>
+import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { ref, reactive, onMounted } from "vue";
-import { useRouter } from "vue-router";
+
 import { projectAPI } from "../api";
 import Loading from "../components/Loading.vue";
 import ProjectList from "../components/ProjectList.vue";
@@ -41,7 +42,7 @@ const renaming = ref(false);
 const renameFormRef = ref(null);
 const renameForm = reactive({ name: "" });
 const renameTarget = ref(null);
-const renameRules = { name: [{ required: true, message: "请输入新名称", trigger: "blur" }] };
+const renameRules = { name: [{ message: "请输入新名称", required: true, trigger: "blur" }] };
 
 onMounted(fetchProjects);
 
@@ -83,9 +84,9 @@ async function handleRename() {
 async function handleDelete(project) {
   try {
     await ElMessageBox.confirm(`确定要删除项目「${project.name}」吗？此操作不可恢复。`, "确认删除", {
-      type: "warning",
-      confirmButtonText: "删除",
       cancelButtonText: "取消",
+      confirmButtonText: "删除",
+      type: "warning",
     });
     await projectAPI.delete(project.id);
     await fetchProjects();

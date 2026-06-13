@@ -22,8 +22,8 @@
 import { Close, PictureFilled } from "@element-plus/icons-vue";
 
 defineProps({
-  pdfUrl: { type: String, default: "" },
-  log: { type: String, default: "" },
+  log: { default: "", type: String },
+  pdfUrl: { default: "", type: String },
 });
 
 defineEmits(["close"]);
