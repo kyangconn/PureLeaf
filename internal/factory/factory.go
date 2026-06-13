@@ -1,0 +1,67 @@
+// Package factory 集中创建并管理所有应用依赖
+package factory
+
+import (
+	"path/filepath"
+
+	"gorm.io/gorm"
+
+	"github.com/kyangconn/goleaf/internal/config"
+	"github.com/kyangconn/goleaf/internal/database"
+	"github.com/kyangconn/goleaf/internal/domain"
+	pklog "github.com/kyangconn/goleaf/internal/log"
+	"github.com/kyangconn/goleaf/internal/repository"
+	"github.com/kyangconn/goleaf/internal/service"
+)
+
+// App 聚合所有应用依赖
+type App struct {
+	Config     *config.Config
+	DB         *gorm.DB
+	UserSvc    service.UserService
+	ProjectSvc service.ProjectService
+	FileSvc    service.FileService
+}
+
+// New 初始化所有依赖并返回 App。
+// 如果是首次运行（无用户），自动创建默认管理员账户。
+func New() (*App, error) {
+	cfg, err := config.Load("")
+	if err != nil {
+		return nil, err
+	}
+	pklog.Init(cfg.LogFile)
+
+	db, err := database.NewSQLite(cfg.Database.Path, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.AutoMigrate(&domain.User{}, &domain.Project{}, &domain.Collaborator{}, &domain.File{}); err != nil {
+		return nil, err
+	}
+
+	userRepo := repository.NewUserRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
+	fileRepo := repository.NewFileRepository(db)
+
+	userSvc := service.NewUserService(userRepo)
+	projectSvc := service.NewProjectService(projectRepo, fileRepo, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
+	fileSvc := service.NewFileService(fileRepo, projectRepo, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
+
+	// 如果没有用户，自动创建默认管理员
+	if has, _ := userSvc.HasUsers(); !has {
+		if _, err := userSvc.CreateDefault(); err != nil {
+			return nil, err
+		}
+		pklog.Infof("已创建默认管理员账户")
+	}
+
+	pklog.Infof("goleaf 已就绪")
+	return &App{
+		Config:     cfg,
+		DB:         db,
+		UserSvc:    userSvc,
+		ProjectSvc: projectSvc,
+		FileSvc:    fileSvc,
+	}, nil
+}

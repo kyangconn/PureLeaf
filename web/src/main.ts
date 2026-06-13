@@ -1,7 +1,8 @@
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import ElementPlus from "element-plus";
 import { createPinia } from "pinia";
+import ElementPlus from "element-plus";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
+
 import "./styles/index.scss";
 // 应用入口 — 挂载 Vue 实例
 import { createApp } from "vue";
@@ -13,7 +14,7 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
-app.use(ElementPlus, { locale: { el: {} } });
+app.use(ElementPlus);
 
 // 全局注册 Element Plus 图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

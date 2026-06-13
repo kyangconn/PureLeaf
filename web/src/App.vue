@@ -1,8 +1,6 @@
 <template>
-  <!-- 无需 layout 的页面 -->
-  <router-view v-if="$route.meta.plain" />
   <!-- 带全局顶栏的页面 -->
-  <BaseLayout v-else :dark="$route.name === 'Editor'" @create-project="handleCreate">
+  <BaseLayout :dark="$route.name === 'Editor'" @create-project="handleCreate">
     <router-view />
   </BaseLayout>
 </template>
@@ -16,10 +14,10 @@ const router = useRouter();
 
 async function handleCreate() {
   try {
-    const { data } = await projectAPI.create({ name: "未命名项目" });
+    const data = await projectAPI.create({ name: "未命名项目" });
     router.push(`/project/${data.id}`);
   } catch {
-    /* handled by interceptor */
+    /* handled */
   }
 }
 </script>

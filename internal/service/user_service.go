@@ -4,63 +4,33 @@ package service
 import (
 	"github.com/kyangconn/goleaf/internal/domain"
 	"github.com/kyangconn/goleaf/internal/repository"
-	"github.com/kyangconn/goleaf/pkg/jwt"
-	"github.com/kyangconn/goleaf/pkg/password"
 )
 
 // UserService 认证业务接口
 type UserService interface {
-	Register(username, email, pwd string) (*domain.User, string, error)
-	Login(username, pwd string) (*domain.User, string, error)
+	CreateDefault() (*domain.User, error)
 	GetByID(id uint) (*domain.User, error)
 	HasUsers() (bool, error)
 }
 
 type userService struct {
-	userRepo   repository.UserRepository
-	jwtManager *jwt.Manager
+	userRepo repository.UserRepository
 }
 
 // NewUserService 创建认证服务
-func NewUserService(userRepo repository.UserRepository, jwtMgr *jwt.Manager) UserService {
-	return &userService{userRepo: userRepo, jwtManager: jwtMgr}
+func NewUserService(userRepo repository.UserRepository) UserService {
+	return &userService{userRepo: userRepo}
 }
 
-func (s *userService) Register(username, email, pwd string) (*domain.User, string, error) {
-	hash, err := password.Hash(pwd)
-	if err != nil {
-		return nil, "", err
+func (s *userService) CreateDefault() (*domain.User, error) {
+	user := &domain.User{
+		Username: "admin",
+		Email:    "admin@localhost",
 	}
-
-	user := &domain.User{Username: username, Email: email, PasswordHash: hash}
 	if err := s.userRepo.Create(user); err != nil {
-		return nil, "", err
+		return nil, err
 	}
-
-	token, err := s.jwtManager.Generate(user.ID)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return user, token, nil
-}
-
-func (s *userService) Login(username, pwd string) (*domain.User, string, error) {
-	user, err := s.userRepo.FindByUsername(username)
-	if err != nil {
-		return nil, "", repository.ErrUserNotFound
-	}
-
-	if !password.Verify(pwd, user.PasswordHash) {
-		return nil, "", repository.ErrUserNotFound
-	}
-
-	token, err := s.jwtManager.Generate(user.ID)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return user, token, nil
+	return user, nil
 }
 
 func (s *userService) GetByID(id uint) (*domain.User, error) {

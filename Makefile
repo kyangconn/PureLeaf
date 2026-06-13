@@ -2,7 +2,7 @@
 
 .DEFAULT_GOAL := help
 
-FE_DIR := web
+FE_DIR := frontend
 
 # Detect OS for binary extension
 ifeq ($(OS),Windows_NT)
@@ -40,13 +40,13 @@ build-fe: ## Build Vue frontend, output to cmd/server/dist/
 	cd $(FE_DIR) && pnpm install --frozen-lockfile && pnpm build
 
 build-be: ## Build Go server binary
-	go build -v -o $(BINARY) ./cmd/server
+	wails build
 
 dev-fe: ## Start Vite dev server at localhost:5173
 	cd $(FE_DIR) && pnpm dev
 
 dev-be: ## Start Go server at localhost:8080
-	go run ./cmd/server
+	wails dev
 
 test: test-be lint-fe ## Run backend tests + frontend lint
 

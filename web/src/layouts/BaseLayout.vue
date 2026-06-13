@@ -12,14 +12,7 @@
       <div class="header-right">
         <slot name="header-right" />
         <el-button type="primary" size="small" :icon="Plus" @click="$emit('create-project')">新建</el-button>
-        <el-dropdown trigger="click">
-          <span class="user-name">{{ authStore.user?.username }}</span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <span class="user-name">{{ authStore.user?.username || 'admin' }}</span>
       </div>
     </header>
     <main class="layout-main">
@@ -39,11 +32,7 @@ defineProps({
 defineEmits(["create-project"]);
 
 const authStore = useAuthStore();
-
-function handleLogout() {
-  authStore.logout();
-  window.location.href = "/login";
-}
+authStore.fetchUser();
 </script>
 
 <style lang="scss" scoped>
