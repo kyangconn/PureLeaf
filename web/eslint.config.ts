@@ -9,7 +9,7 @@ import pluginPrettier from "eslint-plugin-prettier/recommended";
 export default defineConfig([
   // ── Global ignores ──────────────────────────────────────────────
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "build/", "**/public/**", ".cache/", "wailsjs/"],
+    ignores: ["**/node_modules/**", "**/dist/**", "build/", "**/public/**", ".cache/", "bindings/", "wailsjs/"],
   },
 
   // ── JS + TS base ─────────────────────────────────────────────────

@@ -2,38 +2,60 @@ package main
 
 import (
 	"embed"
+	"log"
 
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v3/pkg/application"
 
-	leafwails "github.com/kyangconn/goleaf/internal/transport"
+	"github.com/kyangconn/goleaf/internal/bindings"
+	"github.com/kyangconn/goleaf/internal/factory"
 )
 
 //go:embed all:web/dist
 var assets embed.FS
 
 func main() {
-	myapp := leafwails.New()
+	container, err := factory.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	err := wails.Run(&options.App{
-		Title:     "goleaf — LaTeX Editor",
-		Width:     1280,
-		Height:    800,
-		MinWidth:  900,
-		MinHeight: 600,
-		AssetServer: &assetserver.Options{
-			Assets: assets,
+	app := application.New(application.Options{
+		Name:        "goleaf",
+		Description: "Desktop LaTeX editor",
+		Services: []application.Service{
+			application.NewService(bindings.NewProjectService(container.ProjectSvc)),
+			application.NewService(bindings.NewFileService(container.FileSvc)),
 		},
-		Frameless:        true,
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        myapp.Startup,
-		Bind: []interface{}{
-			myapp,
+		Assets: application.AssetOptions{
+			Handler: application.AssetFileServerFS(assets),
+		},
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
+		OnShutdown: func() {
+			if err := container.Close(); err != nil {
+				log.Printf("关闭资源失败: %v", err)
+			}
 		},
 	})
 
-	if err != nil {
-		println("Error:", err.Error())
+	app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "main",
+		Title:            "goleaf - LaTeX Editor",
+		Width:            1280,
+		Height:           800,
+		MinWidth:         900,
+		MinHeight:        600,
+		Frameless:        true,
+		BackgroundColour: application.NewRGB(27, 38, 54),
+		URL:              "/",
+		Mac: application.MacWindow{
+			InvisibleTitleBarHeight: 48,
+			TitleBar:                application.MacTitleBarHiddenInset,
+		},
+	})
+
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
 	}
 }

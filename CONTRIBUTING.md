@@ -44,7 +44,7 @@ internal/
   log/                          Logging
   repository/                   GORM data access
   service/                      Business logic
-  transport/                    Wails method bindings
+  bindings/                     Wails v3 method bindings
 web/
   src/
     api/                        Frontend API wrapper over Wails bindings
@@ -54,13 +54,13 @@ web/
     stores/                     Pinia stores
     styles/                     Global SCSS and theme variables
     views/                      Page views
-  wailsjs/                      Generated Wails bindings
+  bindings/                     Generated Wails bindings
 ```
 
 ## Backend Boundaries
 
 - `internal/factory/factory.go` is the only dependency initialization point.
-- `internal/transport/app.go` must stay thin. It should forward arguments to services and adapt return values for Wails.
+- `internal/bindings/` must stay thin. It should forward arguments to services and adapt return values for Wails.
 - `internal/service/` owns business logic.
 - `internal/repository/` owns database access.
 - `internal/domain/` contains domain models.
@@ -75,11 +75,11 @@ web/
 - Use Element Plus and `@element-plus/icons-vue`; do not add another UI framework.
 - Components should use `<style lang="scss" scoped>`.
 - Use `@` for `web/src/`.
-- Use `@wailsjs` for generated Go bindings.
+- Use `@bindings` for generated Wails bindings.
 - Components should import APIs from `web/src/api/index.ts`.
 - Do not call `window.go...` directly in Vue components.
 - Do not add axios or HTTP API calls for app business logic.
-- Do not manually edit `web/wailsjs/`; regenerate Wails bindings after backend method changes.
+- Do not manually edit `web/bindings/`; regenerate Wails bindings after backend method changes.
 
 ## Data Flow
 
@@ -87,7 +87,7 @@ web/
 Vue components
   -> web/src/api/index.ts
   -> Wails generated bindings
-  -> internal/transport/app.go
+  -> internal/bindings/
   -> internal/service/*
   -> internal/repository/*
   -> SQLite metadata + disk files

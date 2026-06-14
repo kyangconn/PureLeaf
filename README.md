@@ -1,6 +1,6 @@
 # goleaf
 
-goleaf 是一个轻量级桌面 LaTeX 编辑器，基于 Wails v2、Go 和 Vue 3 构建。
+goleaf 是一个轻量级桌面 LaTeX 编辑器，基于 Wails v3、Go 和 Vue 3 构建。
 
 项目目标是提供一个本地优先的 LaTeX 写作环境：项目文件直接保存在磁盘，桌面端通过 Go 后端管理项目、文件和编译流程，前端提供编辑、文件树和 PDF 预览体验。
 
@@ -19,13 +19,13 @@ goleaf 是一个轻量级桌面 LaTeX 编辑器，基于 Wails v2、Go 和 Vue 3
 ## 运行
 
 ```bash
-wails dev
+wails3 dev
 ```
 
 ## 构建
 
 ```bash
-wails build
+wails3 build
 ```
 
 ## 配置
@@ -47,6 +47,4 @@ latex:
 
 架构说明、开发命令、目录结构和实现约束见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-## License
-
-见 [LICENSE](LICENSE)。
+## Special Thanks

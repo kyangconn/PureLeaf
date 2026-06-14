@@ -6,7 +6,7 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"],
-      "@wailsjs/*": ["./wailsjs/go/*"]
+      "@bindings/*": ["./bindings/*"]
     },
 
     /* Strict type checking */

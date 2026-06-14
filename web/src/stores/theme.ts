@@ -1,8 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
 
-import { WindowSetDarkTheme, WindowSetLightTheme } from "../../wailsjs/runtime/runtime";
-
 export type ThemeMode = "dark" | "light";
 
 const APP_THEME_KEY = "goleaf:app-theme";
@@ -11,13 +9,6 @@ const EDITOR_THEME_KEY = "goleaf:editor-theme";
 function readTheme(key: string, fallback: ThemeMode): ThemeMode {
   const value = localStorage.getItem(key);
   return value === "dark" || value === "light" ? value : fallback;
-}
-
-function syncWindowTheme(theme: ThemeMode) {
-  const wailsWindow = window as Window & { runtime?: unknown };
-  if (!wailsWindow.runtime) return;
-  if (theme === "dark") WindowSetDarkTheme();
-  else WindowSetLightTheme();
 }
 
 export const useThemeStore = defineStore("theme", () => {
@@ -31,7 +22,6 @@ export const useThemeStore = defineStore("theme", () => {
     appTheme,
     (value) => {
       localStorage.setItem(APP_THEME_KEY, value);
-      syncWindowTheme(value);
     },
     { immediate: true },
   );

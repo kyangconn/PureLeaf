@@ -1,75 +1,66 @@
-.PHONY: help build build-fe build-be build-silent dev-fe dev-be test lint lint-fe lint-be docker clean
+.PHONY: build dev run install clean test lint fmt vet lint-fe generate deps build-fe build-be help
 
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := build
 
-FE_DIR := web
+APP_NAME := goleaf
+FE_DIR   := web
+BIN_DIR  := bin
 
-# Detect OS for binary extension
-ifeq ($(OS),Windows_NT)
-    BINARY := goleaf.exe
-else
-    BINARY := goleaf
-endif
+# ── Primary ─────────────────────────────────────────────
 
-help: ## Show available commands
-	@echo "goleaf - LaTeX Editor"
-	@echo ""
-	@echo "=== Build ==="
-	@echo "  make build          Build frontend + backend (production)"
-	@echo "  make build-fe       Build frontend only"
-	@echo "  make build-be       Build backend only (requires dist/)"
-	@echo ""
-	@echo "=== Develop ==="
-	@echo "  make dev-fe         Start frontend dev server (hot reload)"
-	@echo "  make dev-be         Start backend dev server"
-	@echo ""
-	@echo "=== Quality ==="
-	@echo "  make lint           Run all linters (Go + ESLint)"
-	@echo "  make lint-fe        Run ESLint on frontend"
-	@echo "  make lint-be        Run Go vet"
-	@echo "  make test           Run all tests (Go + frontend lint)"
-	@echo ""
-	@echo "=== Docker ==="
-	@echo "  make docker         Build Docker image"
-	@echo "  make clean          Remove build artifacts"
+build: generate deps        ## Production build
+	wails3 build
 
-build: build-fe build-be ## Build frontend then backend
+dev:                        ## Dev mode with hot reload
+	wails3 dev -config ./build/config.yml
 
-build-fe: ## Build Vue frontend, output to cmd/server/dist/
-	cd $(FE_DIR) && pnpm install --frozen-lockfile && pnpm build
+run:                        ## Launch the built binary
+	@$(BIN_DIR)/$(APP_NAME)$(if $(filter Windows_NT,$(shell uname -s 2>/dev/null || echo Windows)),.exe,)
 
-build-be: ## Build Go server binary
-	wails build
+install: build run          ## Build and launch
 
-dev-fe: ## Start Vite dev server at localhost:5173
-	cd $(FE_DIR) && pnpm dev
+# ── Housekeeping ────────────────────────────────────────
 
-dev-be: ## Start Go server at localhost:8080
-	wails dev
+clean:                      ## Remove build artifacts
+	rm -rf $(BIN_DIR) $(FE_DIR)/dist
+	go clean
 
-test: test-be lint-fe ## Run backend tests + frontend lint
+# ── Quality ─────────────────────────────────────────────
 
-test-be: ## Run Go tests
-	go test -v ./...
+test:                       ## Run Go tests
+	go test -v -count=1 ./...
 
-# ── Lint ──────────────────────────────────────────────────
+lint: fmt vet lint-fe       ## Run all linters
 
-lint: ## Run all linters (Go fmt + vet + ESLint)
+fmt:                        ## Format Go source
 	go fmt ./...
+
+vet:                        ## Run Go vet
 	go vet ./...
+
+lint-fe:                    ## Run ESLint on frontend
 	cd $(FE_DIR) && pnpm lint:fix
 
-lint-fe: ## Run ESLint on frontend
-	cd $(FE_DIR) && pnpm eslint . --quiet --fix
+# ── Tooling ─────────────────────────────────────────────
 
-lint-be: ## Run Go vet
-	go vet ./...
+generate:                   ## Generate Wails TS bindings
+	go mod tidy
+	wails3 generate bindings -clean=true -ts -d $(FE_DIR)/bindings
 
-# ── Docker ────────────────────────────────────────────────
+deps:                       ## Install all dependencies
+	go mod download
+	cd $(FE_DIR) && pnpm install --frozen-lockfile
 
-docker: ## Build multi-stage Docker image
-	docker build -t goleaf .
+# ── Partial ─────────────────────────────────────────────
 
-clean: ## Remove build artifacts
-	cd $(FE_DIR) && pnpm clean
-	go clean
+build-fe: deps generate     ## Build frontend only
+	cd $(FE_DIR) && pnpm build
+
+build-be:                   ## Check backend compilation
+	go build ./...
+
+# ── Help ────────────────────────────────────────────────
+
+help:                       ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'

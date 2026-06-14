@@ -4,7 +4,7 @@
 
 - [x] Wails 桌面端迁移（Go + Vue 3，直接函数绑定）
 - [x] 集中式依赖注入（`internal/factory/`）
-- [x] transport 层分离（`internal/transport/wails/`）
+- [x] Wails 绑定层分离（`internal/bindings/`）
 - [x] `pkg/` → `internal/` 重组
 - [x] 文件落盘架构（`{database dir}/projects/{id}/`）
 - [x] 补偿式项目创建（磁盘失败回滚 DB）

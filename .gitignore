@@ -37,7 +37,18 @@ go.work.sum
 conf*.yaml
 !config-example.yaml
 
-# Frontend build artifacts (do not commit these)
-cmd/server/dist/
-web/dist/
-web/node_modules/
+# Wails 3 — task checksums
+.task/
+web/package.json.md5
+
+# Wails 3 — generated platform icons
+build/windows/icon.ico
+build/darwin/icons.icns
+build/darwin/Assets.car
+
+# Mobile
+build/android/
+build/ios/
+
+# Not needed for now
+build/docker/

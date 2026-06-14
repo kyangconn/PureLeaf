@@ -53,3 +53,15 @@ func New() (*App, error) {
 		FileSvc:    fileSvc,
 	}, nil
 }
+
+// Close releases resources owned by the application container.
+func (a *App) Close() error {
+	if a == nil || a.DB == nil {
+		return nil
+	}
+	sqlDB, err := a.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}

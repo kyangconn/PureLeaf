@@ -44,7 +44,7 @@
 <script setup>
 import { Close, FullScreen, Minus, Plus, Setting } from "@element-plus/icons-vue";
 
-import { Quit, WindowMinimise, WindowToggleMaximise } from "../../wailsjs/runtime/runtime";
+import { closeApp, minimizeWindow, toggleMaximizeWindow } from "../platform/window";
 
 defineProps({
   dark: { default: false, type: Boolean },
@@ -52,20 +52,12 @@ defineProps({
 
 defineEmits(["create-project", "open-settings"]);
 
-function hasWailsRuntime() {
-  return Boolean(window.runtime);
-}
-
 function minimize() {
-  if (hasWailsRuntime()) WindowMinimise();
+  minimizeWindow();
 }
 
 function toggleMaximize() {
-  if (hasWailsRuntime()) WindowToggleMaximise();
-}
-
-function closeApp() {
-  if (hasWailsRuntime()) Quit();
+  toggleMaximizeWindow();
 }
 </script>
 
