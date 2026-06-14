@@ -12,9 +12,13 @@ export {
 
 export {
     CompileResult,
+    DiffResultDTO,
     FileDTO,
+    FileRevisionDTO,
     LatexEnvironmentDTO,
     LatexToolDTO,
     ProjectDTO,
+    ProjectSnapshotDTO,
+    RevisionContentDTO,
     TexLiveDownloadDTO
 } from "./models.js";

@@ -6,7 +6,7 @@ This document describes the current architecture, development commands, and impl
 
 | Layer | Technology |
 | ---- | ---- |
-| Desktop | Wails v2 |
+| Desktop | Wails v3 |
 | Backend | Go, GORM, SQLite |
 | Frontend | Vue 3, TypeScript, Vite |
 | UI | Element Plus |
@@ -18,10 +18,17 @@ This document describes the current architecture, development commands, and impl
 ## Commands
 
 ```bash
-wails dev       # Desktop development mode
-wails build     # Production desktop build
+wails3 dev       # Desktop development mode
+wails3 build     # Production desktop build
 go build ./...  # Compile Go only
 go test ./...   # Run Go tests
+```
+
+Wails bindings must be regenerated after backend method changes. From the
+project root:
+
+```bash
+wails3 generate bindings -clean=true -ts -d web/bindings
 ```
 
 Frontend commands must be run from `web/` and must use pnpm:
@@ -37,13 +44,13 @@ pnpm lint
 ```text
 main.go                         Wails entrypoint, embeds web/dist
 internal/
-  config/                       Viper configuration
+  config/                       Viper configuration + platform data dir resolution
   database/                     SQLite initialization
-  domain/                       Domain models
+  domain/                       Domain models (project, file, file_revision, project_snapshot)
   factory/                      Single dependency initialization point
   log/                          Logging
   repository/                   GORM data access
-  service/                      Business logic
+  service/                      Business logic + blob store + path guard + diff
   bindings/                     Wails v3 method bindings
 web/
   src/
@@ -57,6 +64,16 @@ web/
   bindings/                     Generated Wails bindings
 ```
 
+On-disk layout under `dataRoot`:
+
+```text
+{dataRoot}/
+  goleaf.db                     SQLite metadata + history indexes
+  projects/{id}/                project working files (real source of truth)
+  .backup/blobs/{hash[:2]}/{hash}   content-addressed snapshot storage
+  downloads/texlive/            cached TeX Live installers
+```
+
 ## Backend Boundaries
 
 - `internal/factory/factory.go` is the only dependency initialization point.
@@ -64,9 +81,15 @@ web/
 - `internal/service/` owns business logic.
 - `internal/repository/` owns database access.
 - `internal/domain/` contains domain models.
-- Project files are stored on disk under `{database dir}/projects/{id}/`.
-- By default, `database.path` resolves to the system user config directory, for example `%AppData%/goleaf/goleaf.db` on Windows.
-- SQLite stores file and directory metadata only. Do not store file content in SQLite.
+- Project files are stored on disk under `{dataRoot}/projects/{id}/`.
+- `dataRoot` resolves to the user data directory (not the config directory):
+  - Linux: `$XDG_DATA_HOME/goleaf`, fallback `~/.local/share/goleaf`
+  - macOS: `~/Library/Application Support/goleaf`
+  - Windows: `%LOCALAPPDATA%/goleaf`, fallback `%APPDATA%/goleaf`
+- `dataRoot` is `filepath.Dir(config.Database.Path)` (the `.db` lives there).
+- File content snapshots are content-addressed under `{dataRoot}/.backup/blobs/{hash[:2]}/{hash}`.
+- SQLite stores file and directory metadata only, plus `file_revisions` /
+  `project_snapshots` indexes for history. Do not store file content in SQLite.
 - Desktop app is single user. Do not add auth, JWT, roles, or multi-user ownership concepts.
 
 ## Frontend Boundaries

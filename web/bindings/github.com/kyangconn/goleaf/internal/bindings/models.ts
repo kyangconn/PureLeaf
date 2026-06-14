@@ -38,6 +38,30 @@ export class CompileResult {
 }
 
 /**
+ * DiffResultDTO 包装两个历史版本间的 unified diff 文本。
+ */
+export class DiffResultDTO {
+    "diff": string;
+
+    /** Creates a new DiffResultDTO instance. */
+    constructor($$source: Partial<DiffResultDTO> = {}) {
+        if (!("diff" in $$source)) {
+            this["diff"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DiffResultDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DiffResultDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DiffResultDTO($$parsedSource as Partial<DiffResultDTO>);
+    }
+}
+
+/**
  * FileDTO is the file shape exposed to Wails bindings.
  */
 export class FileDTO {
@@ -88,6 +112,59 @@ export class FileDTO {
             $$parsedSource["children"] = $$createField8_0($$parsedSource["children"]);
         }
         return new FileDTO($$parsedSource as Partial<FileDTO>);
+    }
+}
+
+/**
+ * FileRevisionDTO 是文件历史版本的对外结构。
+ */
+export class FileRevisionDTO {
+    "id": number;
+    "project_id": number;
+    "file_id": number;
+    "file_path": string;
+    "content_hash": string;
+    "size": number;
+    "reason": string;
+    "snapshot_id"?: number | null;
+    "created_at": string;
+
+    /** Creates a new FileRevisionDTO instance. */
+    constructor($$source: Partial<FileRevisionDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("project_id" in $$source)) {
+            this["project_id"] = 0;
+        }
+        if (!("file_id" in $$source)) {
+            this["file_id"] = 0;
+        }
+        if (!("file_path" in $$source)) {
+            this["file_path"] = "";
+        }
+        if (!("content_hash" in $$source)) {
+            this["content_hash"] = "";
+        }
+        if (!("size" in $$source)) {
+            this["size"] = 0;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+        if (!("created_at" in $$source)) {
+            this["created_at"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new FileRevisionDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): FileRevisionDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new FileRevisionDTO($$parsedSource as Partial<FileRevisionDTO>);
     }
 }
 
@@ -190,6 +267,78 @@ export class ProjectDTO {
     static createFrom($$source: any = {}): ProjectDTO {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new ProjectDTO($$parsedSource as Partial<ProjectDTO>);
+    }
+}
+
+/**
+ * ProjectSnapshotDTO 是项目快照的对外结构。
+ */
+export class ProjectSnapshotDTO {
+    "id": number;
+    "project_id": number;
+    "reason": string;
+    "file_count": number;
+    "total_size": number;
+    "snapshot_of": string;
+    "created_at": string;
+
+    /** Creates a new ProjectSnapshotDTO instance. */
+    constructor($$source: Partial<ProjectSnapshotDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = 0;
+        }
+        if (!("project_id" in $$source)) {
+            this["project_id"] = 0;
+        }
+        if (!("reason" in $$source)) {
+            this["reason"] = "";
+        }
+        if (!("file_count" in $$source)) {
+            this["file_count"] = 0;
+        }
+        if (!("total_size" in $$source)) {
+            this["total_size"] = 0;
+        }
+        if (!("snapshot_of" in $$source)) {
+            this["snapshot_of"] = "";
+        }
+        if (!("created_at" in $$source)) {
+            this["created_at"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProjectSnapshotDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProjectSnapshotDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProjectSnapshotDTO($$parsedSource as Partial<ProjectSnapshotDTO>);
+    }
+}
+
+/**
+ * RevisionContentDTO 包装某个历史版本的完整内容。
+ */
+export class RevisionContentDTO {
+    "content": string;
+
+    /** Creates a new RevisionContentDTO instance. */
+    constructor($$source: Partial<RevisionContentDTO> = {}) {
+        if (!("content" in $$source)) {
+            this["content"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RevisionContentDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RevisionContentDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RevisionContentDTO($$parsedSource as Partial<RevisionContentDTO>);
     }
 }
 

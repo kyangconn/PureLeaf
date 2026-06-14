@@ -24,11 +24,15 @@
 
 ## 📁 文件版本管理
 
-- [ ] 基础快照
-  - 文件保存前写入 app 内部快照 blob：`.goleaf/snapshots/blobs/{sha256}`
-  - SQLite 记录 snapshot metadata：project_id、file_id、file_path、content_hash、blob_path、size、reason、created_at
-  - UI 展示快照列表 + diff 对比 + restore
-  - 后台 GC 清理 orphan blob 和过期快照
+- [x] 基础快照
+  - blob 内容寻址存储：`{dataRoot}/.backup/blobs/{hash前2位}/{sha256}`，自动去重
+  - SQLite 记录 `file_revisions`：project_id、file_id、file_path、content_hash、blob_path、size、reason、snapshot_id、created_at
+  - 每次保存算 hash，内容未变则跳过；删除文件/项目前生成 `project_snapshots` + 关联的 file_revisions
+  - `ComputeDiff` 基于 LCS 生成 unified diff（无外部依赖）
+  - 后端接口已暴露：`GetFileHistory` / `GetRevisionContent` / `DiffRevisions`
+- [x] UI 展示快照列表 + diff 对比（顶栏三段式布局 + 侧边面板切换：文件/历史/快照）
+- [ ] RestoreRevision（从历史版本还原到工作区）
+- [ ] 后台 GC 清理 orphan blob 和过期快照
 - [ ] Git 集成
   - 新建项目时可选择 `git init`
   - `GitService` 统一封装系统 git CLI：init/status/log/diff/add/commit/restore
@@ -53,8 +57,8 @@
 - [ ] 统一前端错误处理：Wails 异常转换为 Element Plus message / 编译日志
 - [ ] Wails 生成绑定检查：后端导出方法变更后自动或文档化运行生成命令
 - [ ] 梳理并移除 Vite dev proxy 残留，避免误以为仍有 HTTP API
-- [ ] Go service 增加路径安全校验，禁止 `..`、绝对路径、路径分隔符逃逸项目目录
-- [ ] 文件创建 / 重命名增加同级重名校验与非法字符校验
+- [x] Go service 增加路径安全校验，禁止 `..`、绝对路径、路径分隔符逃逸项目目录
+- [x] 文件创建 / 重命名增加同级重名校验与非法字符校验
 - [ ] 文件操作补偿：DB 写入成功但磁盘写入失败时回滚元数据
 - [ ] 编译中间产物清理策略（aux/log/out 等文件保留或隐藏）
 - [ ] 长耗时操作优化：编译改为复制项目到临时目录后执行，避免长时间持有项目锁
@@ -90,3 +94,6 @@
 - [ ] 编译前选择主 `.tex` 文件
 - [ ] 编译错误定位：从 log 跳转到对应文件行
 - [ ] 项目导入 / 导出为 zip
+
+# 设想
+局域网级别协作，自动发现，但是保持类git协作而非实时编辑。

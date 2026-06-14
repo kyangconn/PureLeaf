@@ -33,6 +33,40 @@ type CompileResult struct {
 	Log string `json:"log"`
 }
 
+// FileRevisionDTO 是文件历史版本的对外结构。
+type FileRevisionDTO struct {
+	ID          uint   `json:"id"`
+	ProjectID   uint   `json:"project_id"`
+	FileID      uint   `json:"file_id"`
+	FilePath    string `json:"file_path"`
+	ContentHash string `json:"content_hash"`
+	Size        int64  `json:"size"`
+	Reason      string `json:"reason"`
+	SnapshotID  *uint  `json:"snapshot_id,omitempty"`
+	CreatedAt   string `json:"created_at"`
+}
+
+// ProjectSnapshotDTO 是项目快照的对外结构。
+type ProjectSnapshotDTO struct {
+	ID         uint   `json:"id"`
+	ProjectID  uint   `json:"project_id"`
+	Reason     string `json:"reason"`
+	FileCount  int    `json:"file_count"`
+	TotalSize  int64  `json:"total_size"`
+	SnapshotOf string `json:"snapshot_of"`
+	CreatedAt  string `json:"created_at"`
+}
+
+// RevisionContentDTO 包装某个历史版本的完整内容。
+type RevisionContentDTO struct {
+	Content string `json:"content"`
+}
+
+// DiffResultDTO 包装两个历史版本间的 unified diff 文本。
+type DiffResultDTO struct {
+	Diff string `json:"diff"`
+}
+
 func formatTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -87,6 +121,54 @@ func toFileDTOs(files []*domain.File) []*FileDTO {
 	result := make([]*FileDTO, 0, len(files))
 	for _, file := range files {
 		result = append(result, toFileDTO(file))
+	}
+	return result
+}
+
+func toFileRevisionDTO(rev *domain.FileRevision) *FileRevisionDTO {
+	if rev == nil {
+		return nil
+	}
+	return &FileRevisionDTO{
+		ID:          rev.ID,
+		ProjectID:   rev.ProjectID,
+		FileID:      rev.FileID,
+		FilePath:    rev.FilePath,
+		ContentHash: rev.ContentHash,
+		Size:        rev.Size,
+		Reason:      rev.Reason,
+		SnapshotID:  rev.SnapshotID,
+		CreatedAt:   formatTime(rev.CreatedAt),
+	}
+}
+
+func toFileRevisionDTOs(revs []domain.FileRevision) []FileRevisionDTO {
+	result := make([]FileRevisionDTO, 0, len(revs))
+	for i := range revs {
+		result = append(result, *toFileRevisionDTO(&revs[i]))
+	}
+	return result
+}
+
+func toProjectSnapshotDTO(snap *domain.ProjectSnapshot) *ProjectSnapshotDTO {
+	if snap == nil {
+		return nil
+	}
+	return &ProjectSnapshotDTO{
+		ID:         snap.ID,
+		ProjectID:  snap.ProjectID,
+		Reason:     snap.Reason,
+		FileCount:  snap.FileCount,
+		TotalSize:  snap.TotalSize,
+		SnapshotOf: snap.SnapshotOf,
+		CreatedAt:  formatTime(snap.CreatedAt),
+	}
+}
+
+func toProjectSnapshotDTOs(snaps []domain.ProjectSnapshot) []ProjectSnapshotDTO {
+	result := make([]ProjectSnapshotDTO, 0, len(snaps))
+	for i := range snaps {
+		result = append(result, *toProjectSnapshotDTO(&snaps[i]))
 	}
 	return result
 }

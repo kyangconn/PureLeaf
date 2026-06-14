@@ -71,3 +71,47 @@ func (s *FileService) CompileProject(projectID uint) (*CompileResult, error) {
 	}
 	return &CompileResult{PDF: pdfBytes, Log: logOutput}, nil
 }
+
+func (s *FileService) GetFileHistory(projectID, fileID uint) ([]FileRevisionDTO, error) {
+	revs, err := s.files.GetFileHistory(fileID, projectID, 0)
+	if err != nil {
+		return nil, err
+	}
+	return toFileRevisionDTOs(revs), nil
+}
+
+func (s *FileService) GetProjectHistory(projectID uint) ([]FileRevisionDTO, error) {
+	revs, err := s.files.GetProjectHistory(projectID, 100)
+	if err != nil {
+		return nil, err
+	}
+	return toFileRevisionDTOs(revs), nil
+}
+
+func (s *FileService) GetProjectSnapshots(projectID uint) ([]ProjectSnapshotDTO, error) {
+	snaps, err := s.files.GetProjectSnapshots(projectID, 100)
+	if err != nil {
+		return nil, err
+	}
+	return toProjectSnapshotDTOs(snaps), nil
+}
+
+func (s *FileService) GetRevisionContent(revID uint) (*RevisionContentDTO, error) {
+	content, err := s.files.GetRevisionContent(revID)
+	if err != nil {
+		return nil, err
+	}
+	return &RevisionContentDTO{Content: content}, nil
+}
+
+func (s *FileService) DiffRevisions(revA, revB uint) (*DiffResultDTO, error) {
+	diff, err := s.files.DiffRevisions(revA, revB)
+	if err != nil {
+		return nil, err
+	}
+	return &DiffResultDTO{Diff: diff}, nil
+}
+
+func (s *FileService) OpenProjectFolder(projectID uint) error {
+	return s.files.OpenProjectFolder(projectID)
+}

@@ -37,6 +37,14 @@ export const fileAPI = {
     FileService.RenameFile(projectId, fileId, data.name),
   updateContent: (projectId: number, fileId: number, data: { content: string }) =>
     FileService.UpdateFileContent(projectId, fileId, data.content),
+  // 历史与快照
+  diffRevisions: (revA: number, revB: number) => FileService.DiffRevisions(revA, revB),
+  getFileHistory: (projectId: number, fileId: number) => FileService.GetFileHistory(projectId, fileId),
+  getProjectHistory: (projectId: number) => FileService.GetProjectHistory(projectId),
+  getProjectSnapshots: (projectId: number) => FileService.GetProjectSnapshots(projectId),
+  getRevisionContent: (revId: number) => FileService.GetRevisionContent(revId),
+  // 系统
+  openProjectFolder: (projectId: number) => FileService.OpenProjectFolder(projectId),
 };
 
 export const latexAPI = {

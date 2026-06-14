@@ -37,13 +37,32 @@ type ProjectService interface {
 type projectService struct {
 	projectRepo repository.ProjectRepository
 	fileRepo    repository.FileRepository
+	revRepo     repository.FileRevisionRepository
+	snapRepo    repository.ProjectSnapshotRepository
 	lockManager ProjectLockManager
+	blobStore   BlobStore
 	outputDir   string
 }
 
 // NewProjectService 创建项目服务
-func NewProjectService(projectRepo repository.ProjectRepository, fileRepo repository.FileRepository, lockManager ProjectLockManager, outputDir string) ProjectService {
-	return &projectService{projectRepo: projectRepo, fileRepo: fileRepo, lockManager: lockManager, outputDir: outputDir}
+func NewProjectService(
+	projectRepo repository.ProjectRepository,
+	fileRepo repository.FileRepository,
+	revRepo repository.FileRevisionRepository,
+	snapRepo repository.ProjectSnapshotRepository,
+	lockManager ProjectLockManager,
+	blobStore BlobStore,
+	outputDir string,
+) ProjectService {
+	return &projectService{
+		projectRepo: projectRepo,
+		fileRepo:    fileRepo,
+		revRepo:     revRepo,
+		snapRepo:    snapRepo,
+		lockManager: lockManager,
+		blobStore:   blobStore,
+		outputDir:   outputDir,
+	}
 }
 
 func (s *projectService) Create(name string) (*domain.Project, error) {
@@ -108,6 +127,11 @@ func (s *projectService) Delete(projectID uint) error {
 			return err
 		}
 
+		// 删除前为整个项目生成快照：把项目内所有文件内容落入 blob 并记录版本。
+		if snapErr := s.snapshotProjectFiles(projectID); snapErr != nil {
+			_ = snapErr // 快照失败不阻断删除
+		}
+
 		if err := s.fileRepo.DeleteByProjectID(projectID); err != nil {
 			return err
 		}
@@ -121,4 +145,73 @@ func (s *projectService) Delete(projectID uint) error {
 
 		return nil
 	})
+}
+
+// snapshotProjectFiles 为项目内所有文件生成项目快照。
+func (s *projectService) snapshotProjectFiles(projectID uint) error {
+	if s.blobStore == nil || s.revRepo == nil || s.snapRepo == nil {
+		return nil
+	}
+	files, err := s.fileRepo.FindByProjectID(projectID)
+	if err != nil {
+		return err
+	}
+	// 构建 id -> file 映射，用于计算嵌套文件的相对路径。
+	fileMap := make(map[uint]*domain.File, len(files))
+	for i := range files {
+		fileMap[files[i].ID] = &files[i]
+	}
+	baseDir := filepath.Join(s.outputDir, fmt.Sprintf("%d", projectID))
+	var (
+		revs    []domain.FileRevision
+		totalSz int64
+		count   int
+	)
+	for i := range files {
+		f := files[i]
+		if f.IsDir {
+			continue
+		}
+		rel := computeFilePath(fileMap, f.ID)
+		if err := ValidateRelativePath(rel); err != nil {
+			continue
+		}
+		data, readErr := os.ReadFile(filepath.Join(baseDir, rel))
+		if readErr != nil {
+			continue
+		}
+		hash, blobPath, size, putErr := s.blobStore.Put(data)
+		if putErr != nil {
+			continue
+		}
+		revs = append(revs, domain.FileRevision{
+			ProjectID:   projectID,
+			FileID:      f.ID,
+			FilePath:    rel,
+			ContentHash: hash,
+			BlobPath:    blobPath,
+			Size:        size,
+			Reason:      RevisionReasonDelete,
+		})
+		totalSz += size
+		count++
+	}
+	if count == 0 {
+		return nil
+	}
+	snap := &domain.ProjectSnapshot{
+		ProjectID:  projectID,
+		Reason:     SnapshotReasonDelete,
+		FileCount:  count,
+		TotalSize:  totalSz,
+		SnapshotOf: fmt.Sprintf("project/%d", projectID),
+	}
+	if err := s.snapRepo.Create(snap); err != nil {
+		return err
+	}
+	for i := range revs {
+		revs[i].SnapshotID = &snap.ID
+		_ = s.revRepo.Create(&revs[i])
+	}
+	return nil
 }

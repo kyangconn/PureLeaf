@@ -30,16 +30,50 @@ export function DeleteFile(projectID: number, fileID: number): $CancellablePromi
     return $Call.ByID(604456250, projectID, fileID);
 }
 
+export function DiffRevisions(revA: number, revB: number): $CancellablePromise<$models.DiffResultDTO | null> {
+    return $Call.ByID(4072550190, revA, revB).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
 export function GetFileContent(projectID: number, fileID: number): $CancellablePromise<$models.FileDTO | null> {
     return $Call.ByID(2559493848, projectID, fileID).then(($result: any) => {
         return $$createType3($result);
     });
 }
 
+export function GetFileHistory(projectID: number, fileID: number): $CancellablePromise<$models.FileRevisionDTO[]> {
+    return $Call.ByID(154280017, projectID, fileID).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
 export function GetFileTree(projectID: number): $CancellablePromise<($models.FileDTO | null)[]> {
     return $Call.ByID(3156119187, projectID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType8($result);
     });
+}
+
+export function GetProjectHistory(projectID: number): $CancellablePromise<$models.FileRevisionDTO[]> {
+    return $Call.ByID(2657874594, projectID).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+export function GetProjectSnapshots(projectID: number): $CancellablePromise<$models.ProjectSnapshotDTO[]> {
+    return $Call.ByID(1168608359, projectID).then(($result: any) => {
+        return $$createType10($result);
+    });
+}
+
+export function GetRevisionContent(revID: number): $CancellablePromise<$models.RevisionContentDTO | null> {
+    return $Call.ByID(939997033, revID).then(($result: any) => {
+        return $$createType12($result);
+    });
+}
+
+export function OpenProjectFolder(projectID: number): $CancellablePromise<void> {
+    return $Call.ByID(2179100788, projectID);
 }
 
 export function RenameFile(projectID: number, fileID: number, newName: string): $CancellablePromise<$models.FileDTO | null> {
@@ -59,4 +93,12 @@ const $$createType0 = $models.CompileResult.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $models.FileDTO.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($$createType3);
+const $$createType4 = $models.DiffResultDTO.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $models.FileRevisionDTO.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Array($$createType3);
+const $$createType9 = $models.ProjectSnapshotDTO.createFrom;
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = $models.RevisionContentDTO.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);

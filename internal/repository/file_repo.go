@@ -16,6 +16,9 @@ type FileRepository interface {
 	FindByID(id uint) (*domain.File, error)
 	FindByProjectID(projectID uint) ([]domain.File, error)
 	FindByParentID(projectID, parentID uint) ([]domain.File, error)
+	// FindByNameInParent 查询同项目、同一父目录下指定名称的文件，用于重名检查。
+	// parentID 为 nil 时表示项目根目录。
+	FindByNameInParent(projectID uint, parentID *uint, name string, ignoreID uint) (*domain.File, error)
 	FindTeXFiles(projectID uint) ([]domain.File, error)
 	Update(file *domain.File) error
 	Delete(id uint) error
@@ -54,6 +57,26 @@ func (r *fileRepo) FindByParentID(projectID, parentID uint) ([]domain.File, erro
 	err := r.db.Where("project_id = ? AND parent_id = ?", projectID, parentID).
 		Find(&files).Error
 	return files, err
+}
+
+func (r *fileRepo) FindByNameInParent(projectID uint, parentID *uint, name string, ignoreID uint) (*domain.File, error) {
+	q := r.db.Where("project_id = ? AND name = ?", projectID, name)
+	if parentID == nil {
+		q = q.Where("parent_id IS NULL")
+	} else {
+		q = q.Where("parent_id = ?", *parentID)
+	}
+	if ignoreID > 0 {
+		q = q.Where("id <> ?", ignoreID)
+	}
+	var file domain.File
+	if err := q.First(&file).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrFileNotFound
+		}
+		return nil, err
+	}
+	return &file, nil
 }
 
 func (r *fileRepo) FindTeXFiles(projectID uint) ([]domain.File, error) {

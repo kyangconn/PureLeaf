@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -105,10 +106,64 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("latex.timeout", 60)
 }
 
+// defaultDatabasePath 返回默认数据库路径，放在按平台约定的用户数据目录下。
+//
+// 平台规则:
+//   - Linux:   $XDG_DATA_HOME/goleaf，未设置则 ~/.local/share/goleaf
+//   - macOS:   ~/Library/Application Support/goleaf
+//   - Windows: %LOCALAPPDATA%/goleaf，未设置则回退 %APPDATA%/goleaf
+//
+// 数据目录与配置目录语义不同：projects/、.backup/、goleaf.db 都属于用户数据，
+// 不应进入 XDG_CONFIG_HOME / ~/.config。
 func defaultDatabasePath() string {
-	configDir, err := os.UserConfigDir()
-	if err != nil || configDir == "" {
+	dir, err := userDataDir()
+	if err != nil || dir == "" {
 		return filepath.Join(".", "data", "goleaf.db")
 	}
-	return filepath.Join(configDir, "goleaf", "goleaf.db")
+	return filepath.Join(dir, "goleaf.db")
+}
+
+// userDataDir 返回平台约定的用户数据根目录（不含应用子目录）。
+func userDataDir() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		if dir := os.Getenv("LOCALAPPDATA"); dir != "" {
+			return filepath.Join(dir, "goleaf"), nil
+		}
+		if dir := os.Getenv("APPDATA"); dir != "" {
+			return filepath.Join(dir, "goleaf"), nil
+		}
+		return "", fmt.Errorf("无法确定 Windows 用户数据目录（LOCALAPPDATA / APPDATA 均未设置）")
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil || home == "" {
+			return "", fmt.Errorf("无法确定 macOS 用户目录: %w", err)
+		}
+		return filepath.Join(home, "Library", "Application Support", "goleaf"), nil
+	default:
+		// Linux / *BSD / 其他 Unix：遵循 XDG Base Directory Specification
+		if dir := os.Getenv("XDG_DATA_HOME"); dir != "" {
+			if err := validateXdgDir(dir); err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, "goleaf"), nil
+		}
+		home, err := os.UserHomeDir()
+		if err != nil || home == "" {
+			return "", fmt.Errorf("无法确定用户目录: %w", err)
+		}
+		return filepath.Join(home, ".local", "share", "goleaf"), nil
+	}
+}
+
+// validateXdgDir 校验 XDG_DATA_HOME 不是空串或单纯的 home。
+func validateXdgDir(dir string) error {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("XDG_DATA_HOME 无法解析为绝对路径: %w", err)
+	}
+	if strings.TrimSpace(abs) == "" {
+		return fmt.Errorf("XDG_DATA_HOME 不能为空")
+	}
+	return nil
 }

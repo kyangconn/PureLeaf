@@ -35,17 +35,34 @@ func New() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&domain.Project{}, &domain.File{}); err != nil {
+	if err := db.AutoMigrate(
+		&domain.Project{},
+		&domain.File{},
+		&domain.FileRevision{},
+		&domain.ProjectSnapshot{},
+	); err != nil {
 		return nil, err
 	}
 
+	// 数据根目录 = goleaf.db 所在目录；项目、备份、blob 都挂在它下面。
+	dataRoot := filepath.Dir(cfg.Database.Path)
+	projectsDir := filepath.Join(dataRoot, "projects")
+	backupDir := filepath.Join(dataRoot, ".backup")
+	blobsDir := filepath.Join(backupDir, "blobs")
+
 	projectRepo := repository.NewProjectRepository(db)
 	fileRepo := repository.NewFileRepository(db)
+	revRepo := repository.NewFileRevisionRepository(db)
+	snapRepo := repository.NewProjectSnapshotRepository(db)
 	lockManager := service.NewProjectLockManager()
+	blobStore, err := service.NewBlobStore(blobsDir)
+	if err != nil {
+		return nil, err
+	}
 
-	projectSvc := service.NewProjectService(projectRepo, fileRepo, lockManager, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
-	fileSvc := service.NewFileService(fileRepo, projectRepo, lockManager, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
-	latexEnvSvc := service.NewLatexEnvironmentService(cfg.Latex.Compiler, filepath.Join(filepath.Dir(cfg.Database.Path), "downloads", "texlive"))
+	projectSvc := service.NewProjectService(projectRepo, fileRepo, revRepo, snapRepo, lockManager, blobStore, projectsDir)
+	fileSvc := service.NewFileService(fileRepo, projectRepo, revRepo, snapRepo, lockManager, blobStore, cfg.Latex.Compiler, cfg.Latex.Timeout, projectsDir)
+	latexEnvSvc := service.NewLatexEnvironmentService(cfg.Latex.Compiler, filepath.Join(dataRoot, "downloads", "texlive"))
 
 	pklog.Infof("goleaf 已就绪")
 	return &App{

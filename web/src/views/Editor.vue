@@ -2,8 +2,24 @@
   <div class="editor-page">
     <div class="editor-toolbar">
       <div class="toolbar-left">
-        <el-button text class="back-button" :icon="ArrowLeft" @click="$router.push('/')">项目</el-button>
+        <el-button text class="back-button" :icon="ArrowLeft" @click="$router.push('/')">返回</el-button>
+        <span class="toolbar-divider" />
+        <div class="panel-switcher">
+          <el-button
+            v-for="tab in panelTabs"
+            :key="tab.key"
+            text
+            size="small"
+            class="switcher-btn"
+            :class="{ active: activePanel === tab.key }"
+            @click="setPanel(tab.key)"
+          >
+            {{ tab.label }}
+          </el-button>
+        </div>
+      </div>
 
+      <div class="toolbar-center">
         <div class="project-title-bar">
           <span v-if="!renamingProject" class="project-title" @dblclick="startRenameProject">
             {{ project?.name || "加载中..." }}
@@ -32,6 +48,9 @@
         <el-tooltip content="刷新文件树" placement="bottom">
           <el-button class="icon-action" :icon="RefreshRight" @click="refreshTree" />
         </el-tooltip>
+        <el-tooltip content="在文件夹中打开项目" placement="bottom">
+          <el-button class="icon-action" :icon="FolderOpened" @click="handleOpenFolder" />
+        </el-tooltip>
         <el-button type="primary" class="compile-button" :icon="Upload" :loading="compiling" @click="handleCompile">
           {{ compiling ? "编译中..." : "编译 PDF" }}
         </el-button>
@@ -41,6 +60,7 @@
     <div class="editor-body">
       <aside class="sidebar" :style="{ width: sidebarWidth + 'px' }">
         <FileTree
+          v-show="activePanel === 'files'"
           :files="fileTree"
           :active-file-id="activeFile?.id"
           @select="handleFileSelect"
@@ -48,6 +68,8 @@
           @rename="handleRenameFile"
           @delete="handleDeleteFile"
         />
+        <HistoryPanel v-if="activePanel === 'history'" :project-id="projectId" :refresh-key="panelRefreshKey" />
+        <SnapshotPanel v-if="activePanel === 'snapshots'" :project-id="projectId" :refresh-key="panelRefreshKey" />
       </aside>
 
       <div class="resizer" @mousedown="startResize('sidebar', $event)"></div>
@@ -86,12 +108,14 @@
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
-import { ArrowLeft, Close, Document, EditPen, RefreshRight, Upload } from "@element-plus/icons-vue";
+import { ArrowLeft, Close, Document, EditPen, FolderOpened, RefreshRight, Upload } from "@element-plus/icons-vue";
 
 import { projectAPI, fileAPI } from "../api";
 import { useThemeStore } from "../stores/theme";
 import FileTree from "../components/FileTree.vue";
 import PdfPreview from "../components/PdfPreview.vue";
+import HistoryPanel from "../components/HistoryPanel.vue";
+import SnapshotPanel from "../components/SnapshotPanel.vue";
 
 defineOptions({
   name: "EditorView",
@@ -116,6 +140,21 @@ const pdfWidth = ref(400);
 const editorContainer = ref(null);
 let cmView = null;
 let autoSaveTimer = null;
+
+// ---- 侧面板切换 ----
+const activePanel = ref("files");
+const panelRefreshKey = ref(0);
+const panelTabs = [
+  { key: "files", label: "文件" },
+  { key: "history", label: "历史" },
+  { key: "snapshots", label: "快照" },
+];
+
+function setPanel(key) {
+  if (activePanel.value === key) return;
+  activePanel.value = key;
+  panelRefreshKey.value += 1; // 切换后刷新面板数据
+}
 
 // ---- 项目重命名 ----
 const renamingProject = ref(false);
@@ -382,6 +421,7 @@ async function handleDeleteFile(fileId) {
       activeFileContent.value = "";
     }
     await refreshTree();
+    panelRefreshKey.value += 1; // 删除会生成快照，刷新历史/快照面板
   } catch {
     /* handled */
   }
@@ -403,6 +443,14 @@ async function handleCompile() {
     showPdf.value = true;
   } finally {
     compiling.value = false;
+  }
+}
+
+async function handleOpenFolder() {
+  try {
+    await fileAPI.openProjectFolder(projectId.value);
+  } catch {
+    /* handled */
   }
 }
 
@@ -439,7 +487,8 @@ function startResize(panel, e) {
 
 .editor-toolbar {
   height: 46px;
-  @include flex-between;
+  display: flex;
+  align-items: center;
   gap: 12px;
   padding: 0 12px;
   background: var(--editor-panel-bg);
@@ -448,10 +497,65 @@ function startResize(panel, e) {
 }
 
 .toolbar-left {
+  // 左边区域：固定宽度，容纳「返回」按钮宽度的约 3.5 倍（返回 + 竖线 + 3 个切换 tab）
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 280px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--editor-border);
+  flex-shrink: 0;
+}
+
+.panel-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.switcher-btn {
+  color: var(--editor-text-dim);
+  font-weight: 500;
+  padding: 0 8px;
+
+  &:hover,
+  &:focus {
+    background: var(--editor-hover-bg);
+    color: var(--editor-text);
+  }
+
+  &.active {
+    color: var(--editor-accent);
+    font-weight: 600;
+  }
+}
+
+.toolbar-center {
+  // 中间区域：项目名居中，两侧带竖线分隔
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
+  padding: 0 16px;
+  border-left: 1px solid var(--editor-border);
+  border-right: 1px solid var(--editor-border);
+  height: 100%;
+}
+
+.toolbar-actions {
+  // 右边区域：固定宽度，约「返回」按钮宽的 4.5 倍
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 360px;
+  justify-content: flex-end;
 }
 
 .back-button,
@@ -470,8 +574,6 @@ function startResize(panel, e) {
   align-items: center;
   min-width: 0;
   gap: 4px;
-  padding-left: 10px;
-  border-left: 1px solid var(--editor-border);
 }
 
 .project-title {
@@ -480,17 +582,11 @@ function startResize(panel, e) {
   color: var(--editor-text);
   @include text-ellipsis;
   max-width: 320px;
+  cursor: default;
 }
 
 .project-rename-input {
   width: 200px;
-}
-
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
 }
 
 .icon-action {
