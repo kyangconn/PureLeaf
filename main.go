@@ -25,6 +25,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(bindings.NewProjectService(container.ProjectSvc)),
 			application.NewService(bindings.NewFileService(container.FileSvc)),
+			application.NewService(bindings.NewEnvironmentService(container.LatexEnvSvc)),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

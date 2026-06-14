@@ -116,15 +116,13 @@ async function handleDelete(project) {
   position: relative;
   height: 100%;
   overflow-y: auto;
-  padding: 22px;
-  max-width: 920px;
+  padding: 18px 22px 24px;
   width: 100%;
-  margin: 0 auto;
 }
 
 .home-toolbar {
   @include flex-between;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 
   h2 {
     font-size: 18px;

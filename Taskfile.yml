@@ -33,7 +33,19 @@ tasks:
   dev:
     summary: Runs the application in development mode
     cmds:
+      - task: dev:prepare
       - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  dev:prepare:
+    summary: Prepares generated files required before dev mode starts
+    cmds:
+      - task: common:install:frontend:deps
+      - task: common:generate:bindings
+
+  bindings:
+    summary: Regenerates Wails method bindings
+    cmds:
+      - task: common:generate:bindings
 
   setup:docker:
     summary: Builds Docker image for cross-compilation (~800MB download)

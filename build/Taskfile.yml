@@ -139,8 +139,8 @@ tasks:
         # If bundled Puppertino exists, prefer it. Otherwise, try to fetch, but don't fail build on error.
         if [ ! -f web/public/puppertino/puppertino.css ]; then
           echo "No bundled Puppertino found. Attempting to fetch from GitHub..."
-          if curl -fsSL https://raw.githubusercontent.com/codedgar/Puppertino/main/dist/css/full.css -o frontend/public/puppertino/puppertino.css; then
-            curl -fsSL https://raw.githubusercontent.com/codedgar/Puppertino/main/LICENSE -o frontend/public/puppertino/LICENSE || true
+          if curl -fsSL https://raw.githubusercontent.com/codedgar/Puppertino/main/dist/css/full.css -o web/public/puppertino/puppertino.css; then
+            curl -fsSL https://raw.githubusercontent.com/codedgar/Puppertino/main/LICENSE -o web/public/puppertino/LICENSE || true
             echo "Puppertino CSS downloaded to web/public/puppertino/puppertino.css"
           else
             echo "Warning: Could not fetch Puppertino CSS. Proceeding without download since template may bundle it."
@@ -166,19 +166,16 @@ tasks:
   generate:bindings:
     label: generate:bindings (BUILD_FLAGS={{.BUILD_FLAGS}})
     summary: Generates bindings for the frontend
-    deps:
-      - task: go:mod:tidy
     sources:
       - "**/*.[jt]s"
       - exclude: web/**/*
-      - web/bindings/**/*  # Rerun when switching between dev/production mode causes changes in output
       - "**/*.go"
       - go.mod
       - go.sum
     generates:
       - web/bindings/**/*
     cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -d web/bindings
+      - wails3 generate bindings{{if .BUILD_FLAGS}} -f '{{.BUILD_FLAGS}}'{{end}} -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -d web/bindings
 
   generate:icons:
     summary: Generates Windows `.ico` and Mac `.icns` from an image; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).

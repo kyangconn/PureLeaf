@@ -16,10 +16,11 @@ import (
 
 // App 聚合所有应用依赖
 type App struct {
-	Config     *config.Config
-	DB         *gorm.DB
-	ProjectSvc service.ProjectService
-	FileSvc    service.FileService
+	Config      *config.Config
+	DB          *gorm.DB
+	ProjectSvc  service.ProjectService
+	FileSvc     service.FileService
+	LatexEnvSvc service.LatexEnvironmentService
 }
 
 // New 初始化所有依赖并返回 App
@@ -44,13 +45,15 @@ func New() (*App, error) {
 
 	projectSvc := service.NewProjectService(projectRepo, fileRepo, lockManager, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
 	fileSvc := service.NewFileService(fileRepo, projectRepo, lockManager, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
+	latexEnvSvc := service.NewLatexEnvironmentService(cfg.Latex.Compiler, filepath.Join(filepath.Dir(cfg.Database.Path), "downloads", "texlive"))
 
 	pklog.Infof("goleaf 已就绪")
 	return &App{
-		Config:     cfg,
-		DB:         db,
-		ProjectSvc: projectSvc,
-		FileSvc:    fileSvc,
+		Config:      cfg,
+		DB:          db,
+		ProjectSvc:  projectSvc,
+		FileSvc:     fileSvc,
+		LatexEnvSvc: latexEnvSvc,
 	}, nil
 }
 

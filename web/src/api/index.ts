@@ -1,4 +1,17 @@
-import { FileService, ProjectService } from "@bindings/github.com/kyangconn/goleaf/internal/bindings";
+import {
+  EnvironmentService,
+  FileService,
+  ProjectService,
+} from "@bindings/github.com/kyangconn/goleaf/internal/bindings";
+
+function decodeByteSlice(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
 
 export const projectAPI = {
   create: (data: { name: string }) => ProjectService.CreateProject(data.name),
@@ -11,7 +24,8 @@ export const projectAPI = {
 export const fileAPI = {
   compile: async (projectId: number) => {
     const result = await FileService.CompileProject(projectId);
-    const blob = new Blob([new Uint8Array(result.pdf)], { type: "application/pdf" });
+    if (!result) throw new Error("编译失败");
+    const blob = new Blob([decodeByteSlice(result.pdf)], { type: "application/pdf" });
     return { data: blob, log: result.log };
   },
   create: (projectId: number, data: { is_dir?: boolean; name: string; parent_id?: number }) =>
@@ -23,4 +37,13 @@ export const fileAPI = {
     FileService.RenameFile(projectId, fileId, data.name),
   updateContent: (projectId: number, fileId: number, data: { content: string }) =>
     FileService.UpdateFileContent(projectId, fileId, data.content),
+};
+
+export const latexAPI = {
+  checkEnvironment: () => EnvironmentService.CheckLatexEnvironment(),
+  downloadTexLiveInstaller: (variant: "base" | "small" | "medium" | "full") =>
+    EnvironmentService.DownloadTexLiveInstaller(variant),
+  reloadEnvironment: () => EnvironmentService.ReloadLatexEnvironment(),
+  startTexLiveInstaller: (variant: "base" | "small" | "medium" | "full") =>
+    EnvironmentService.StartTexLiveInstaller(variant),
 };
