@@ -6,7 +6,7 @@
 - [x] 集中式依赖注入（`internal/factory/`）
 - [x] transport 层分离（`internal/transport/wails/`）
 - [x] `pkg/` → `internal/` 重组
-- [x] 文件落盘架构（`data/projects/{id}/`）
+- [x] 文件落盘架构（`{database dir}/projects/{id}/`）
 - [x] 补偿式项目创建（磁盘失败回滚 DB）
 - [x] SCSS 变量 + mixin 体系
 - [x] API transport 兼容层（已简化为 Wails-only）
@@ -19,17 +19,27 @@
 - [x] IP 过滤中间件（已随 Web 模式删除，桌面端不需要）
 - [x] 修复前端 axios 风格 `{ data }` 解构，改为 Wails 直接返回值
 - [x] 顶栏增加设置入口与设置页面骨架
+- [x] 项目级锁管理器（ProjectLockManager）
+- [x] 原子写文件 helper（临时文件 + flush + rename）
 
 ## 📁 文件版本管理
 
 - [ ] 基础快照
-  - 每次 `UpdateContent` 前 copy 旧文件到 `.goleaf/snapshots/{timestamp}-{filename}`
-  - UI 展示快照列表 + diff 对比
+  - 文件保存前写入 app 内部快照 blob：`.goleaf/snapshots/blobs/{sha256}`
+  - SQLite 记录 snapshot metadata：project_id、file_id、file_path、content_hash、blob_path、size、reason、created_at
+  - UI 展示快照列表 + diff 对比 + restore
+  - 后台 GC 清理 orphan blob 和过期快照
 - [ ] Git 集成
   - 新建项目时可选择 `git init`
-  - 保存时自动 `git add -A && git commit -m "auto save"`
+  - `GitService` 统一封装系统 git CLI：init/status/log/diff/add/commit/restore
+  - 默认先做手动 commit；自动 commit 后置，避免污染 Git 历史
+  - 保存流程中 Git commit 是后置同步动作，失败不回滚文件保存
   - UI 展示 commit log
   - `config.yaml` 添加 `git.enabled` 和 `git.bin` 配置项
+- [ ] 版本事务边界
+  - 文件系统是真实数据源，SQLite 是元数据和索引，Git 是可选版本系统，快照是 app 安全网
+  - checkout / restore / reset 等会改工作区的操作必须先生成 app snapshot
+  - Git、History、FileService 共享 ProjectLockManager
 
 ## 🧹 工程优化
 
@@ -47,6 +57,19 @@
 - [ ] 文件创建 / 重命名增加同级重名校验与非法字符校验
 - [ ] 文件操作补偿：DB 写入成功但磁盘写入失败时回滚元数据
 - [ ] 编译中间产物清理策略（aux/log/out 等文件保留或隐藏）
+- [ ] 长耗时操作优化：编译改为复制项目到临时目录后执行，避免长时间持有项目锁
+
+## 🧠 LSP
+
+- [ ] LaTeX LSP 集成
+  - 默认支持外部 `texlab`，从 PATH 查找或由设置页指定路径
+  - Go 后端实现 LSP process manager + JSON-RPC client
+  - 项目维度维护 LSP session，路径映射为 `file://` URI
+  - 支持 initialize、didOpen、didChange、didSave、publishDiagnostics
+  - 第一阶段接入 diagnostics 和 completion
+- [ ] 写作检查
+  - 可选集成 LTeX LS，用于拼写、语法和自然语言检查
+  - 与 TexLab 分开配置，避免把语言结构能力和写作检查混成一个服务
 
 ## ✨ 功能
 

@@ -53,31 +53,36 @@ function formatDate(dateStr) {
 @use "@/styles/mixins" as *;
 
 .project-list {
-  background: #fff;
-  border: 1px solid $color-border;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
+  box-shadow: var(--app-shadow);
   overflow: hidden;
 }
 
 .project-row {
   display: flex;
   align-items: center;
-  height: 52px;
+  min-height: 58px;
   padding: 0 16px;
   cursor: pointer;
   transition: background 0.15s;
-  border-bottom: 1px solid $color-border;
+  border-bottom: 1px solid var(--app-border);
   &:last-child {
     border-bottom: none;
   }
   &:hover {
-    background: $color-bg;
+    background: var(--app-hover-bg);
   }
 }
 
 .project-icon {
   @include flex-center;
-  color: $color-primary;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
   flex-shrink: 0;
   margin-right: 12px;
 }
@@ -89,21 +94,25 @@ function formatDate(dateStr) {
 
 .project-name {
   font-size: 14px;
-  font-weight: 500;
-  color: $color-text;
+  font-weight: 600;
+  color: var(--app-text);
   @include text-ellipsis;
   line-height: 1.4;
 }
 
 .project-date {
   font-size: 12px;
-  color: $color-text-secondary;
+  color: var(--app-text-secondary);
   line-height: 1.4;
 }
 
 .project-actions {
   flex-shrink: 0;
   margin-left: 8px;
+
+  :deep(.el-button) {
+    color: var(--app-text-secondary);
+  }
 }
 .project-list-empty {
   padding: 40px 0;

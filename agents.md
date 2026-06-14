@@ -53,7 +53,7 @@ make lint          # go fmt + go vet + 前端 ESLint fix
 - **domain**: `internal/domain/` 是领域模型，一个文件一个模型。
 - **config**: `internal/config/config.go` 使用 Viper，优先级为环境变量 > `config.yaml` > 默认值。环境变量前缀为 `GOLEAF_`。
 - **database**: `internal/database/database.go` 使用纯 Go SQLite 驱动 `github.com/glebarez/sqlite`。
-- **文件存储**: 项目文件落盘到 `data/projects/{id}/`，SQLite 只存文件和目录元数据（name、parent_id、is_dir）。读文件用 `os.ReadFile`，写文件用 `os.WriteFile`。
+- **文件存储**: 项目文件落盘到 `{database dir}/projects/{id}/`。`database.path` 留空时默认使用系统用户配置目录。SQLite 只存文件和目录元数据（name、parent_id、is_dir）。读文件用 `os.ReadFile`，写文件用 `os.WriteFile`。
 - **LaTeX 编译**: 通过配置的 `latex.compiler` 执行 `pdflatex` / `xelatex` / `lualatex` 等命令，超时由 `latex.timeout` 控制。
 - **单用户**: 桌面应用，无用户系统、无登录、无 JWT。所有项目共享。
 

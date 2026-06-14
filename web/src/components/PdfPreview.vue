@@ -36,17 +36,29 @@ defineEmits(["close"]);
 .pdf-preview {
   height: 100%;
   @include flex-column;
-  background: #fff;
-  color: $color-text;
+  background: var(--editor-panel-bg);
+  color: var(--editor-text);
 }
 
 .pdf-header {
-  @include panel-header(35px);
+  @include panel-header(38px);
+  background: var(--editor-panel-bg);
+
+  :deep(.el-button) {
+    color: var(--editor-text-dim);
+
+    &:hover,
+    &:focus {
+      background: var(--editor-hover-bg);
+      color: var(--editor-text);
+    }
+  }
 }
 
 .pdf-content {
   flex: 1;
   overflow: hidden;
+  background: var(--editor-code-bg);
 }
 
 .pdf-frame {
@@ -59,7 +71,7 @@ defineEmits(["close"]);
   height: 100%;
   @include flex-center;
   flex-direction: column;
-  color: #c0c4cc;
+  color: var(--editor-text-dim);
   gap: 12px;
   p {
     font-size: 13px;
@@ -71,14 +83,14 @@ defineEmits(["close"]);
   @include flex-column;
   padding: 12px;
   overflow-y: auto;
-  background: #fafafa;
+  background: var(--editor-code-bg);
 }
 
 .log-title {
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: $color-text;
+  color: var(--editor-text);
 }
 
 .log-text {
@@ -87,7 +99,7 @@ defineEmits(["close"]);
   font-family: Consolas, "Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-all;
-  color: #606266;
+  color: var(--editor-text-dim);
   line-height: 1.5;
 }
 </style>

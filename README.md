@@ -1,65 +1,32 @@
 # goleaf
 
-轻量级桌面 LaTeX 编辑器，基于 **Wails v2（Go + Vue 3）**。
+goleaf 是一个轻量级桌面 LaTeX 编辑器，基于 Wails v2、Go 和 Vue 3 构建。
+
+项目目标是提供一个本地优先的 LaTeX 写作环境：项目文件直接保存在磁盘，桌面端通过 Go 后端管理项目、文件和编译流程，前端提供编辑、文件树和 PDF 预览体验。
+
+## 功能
+
+- 桌面端 LaTeX 项目管理
+- 项目列表、创建、重命名和删除
+- 文件树管理，支持文件和文件夹的创建、重命名、删除
+- CodeMirror 编辑器
+- 自动保存
+- LaTeX 编译并预览生成的 PDF
+- 全局浅色 / 深色主题切换
+- 编辑器独立浅色 / 深色主题切换
+- 无边框桌面窗口
 
 ## 运行
 
 ```bash
-# 开发模式（热重载）
 wails dev
+```
 
-# 构建可执行文件
+## 构建
+
+```bash
 wails build
 ```
-
-## 架构
-
-```
-main.go                          Wails 入口
-internal/
-├── factory/factory.go           集中依赖注入（DB、服务初始化）
-├── transport/wails/app.go       Wails 方法暴露（薄壳，调 factory）
-├── service/                     业务逻辑
-│   ├── project_service.go       项目 CRUD
-│   └── file_service.go          文件树 + 读写 + 编译
-├── repository/                  数据访问（GORM + SQLite）
-├── domain/                      领域模型（Project, File）
-├── config/                      配置加载（Viper）
-├── database/                    SQLite 初始化
-└── log/                         日志
-
-frontend/src/
-├── api/
-│   ├── index.js                 API 入口
-│   └── transport/wails.js       Wails Go 绑定
-├── stores/auth.js               认证状态
-├── router/index.js              路由（Setup / Home / Editor）
-├── views/                       页面组件
-├── components/                  通用组件（FileTree, Loading, ProjectList...）
-├── layouts/BaseLayout.vue       全局顶栏
-└── styles/                      SCSS 变量 + mixin + 全局样式
-```
-
-### 数据流
-
-```
-Vue 组件                    Go 后端
-  ↓                          ↓
-api/index.js               factory.New()         ← 集中初始化
-  ↓                          ↓
-transport/wails.js         transport/wails/app.go ← 薄壳代理
-  ↓                          ↓
-window.go.main.App.*      service.*              ← 业务逻辑
-                             ↓
-                           repository.*          ← 数据访问
-```
-
-### 设计原则
-
-- **factory 是唯一的依赖注入点** — 所有服务在此初始化
-- **transport 是薄壳** — Wails 方法只做参数转发，不写业务逻辑
-- **桌面单用户** — 无需账户系统，所有项目共享
-- **文件落盘** — 项目文件存在 `data/projects/{id}/`，SQLite 只存元数据
 
 ## 配置
 
@@ -67,24 +34,19 @@ window.go.main.App.*      service.*              ← 业务逻辑
 
 ```yaml
 database:
-  path: ./data/goleaf.db
+  path: ""
 
 latex:
-  compiler: pdflatex    # 也支持 xelatex / lualatex / 全路径
-  timeout: 60            # 编译超时秒数
+  compiler: pdflatex
+  timeout: 60
 ```
 
-## 技术栈
+`database.path` 留空时使用系统用户配置目录。`latex.compiler` 可以使用 `pdflatex`、`xelatex`、`lualatex` 或编译器的完整路径。
 
-| 层 | 技术 |
-|----|------|
-| 桌面框架 | Wails v2 |
-| 后端 | Go + GORM + SQLite |
-| 前端 | Vue 3 + Element Plus + CodeMirror 6 |
-| 样式 | SCSS（变量 + mixin） |
-| 状态 | Pinia |
-| 路由 | Vue Router |
+## 开发文档
+
+架构说明、开发命令、目录结构和实现约束见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## License
 
-MIT
+见 [LICENSE](LICENSE)。

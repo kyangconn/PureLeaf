@@ -1,5 +1,6 @@
 database:
-  path: ./data/goleaf.db
+  # Leave empty to use the system user config directory.
+  path: ""
 
 latex:
   compiler: pdflatex

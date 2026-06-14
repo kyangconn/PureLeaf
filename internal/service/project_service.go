@@ -37,12 +37,13 @@ type ProjectService interface {
 type projectService struct {
 	projectRepo repository.ProjectRepository
 	fileRepo    repository.FileRepository
+	lockManager ProjectLockManager
 	outputDir   string
 }
 
 // NewProjectService 创建项目服务
-func NewProjectService(projectRepo repository.ProjectRepository, fileRepo repository.FileRepository, outputDir string) ProjectService {
-	return &projectService{projectRepo: projectRepo, fileRepo: fileRepo, outputDir: outputDir}
+func NewProjectService(projectRepo repository.ProjectRepository, fileRepo repository.FileRepository, lockManager ProjectLockManager, outputDir string) ProjectService {
+	return &projectService{projectRepo: projectRepo, fileRepo: fileRepo, lockManager: lockManager, outputDir: outputDir}
 }
 
 func (s *projectService) Create(name string) (*domain.Project, error) {
@@ -69,7 +70,7 @@ func (s *projectService) Create(name string) (*domain.Project, error) {
 		s.projectRepo.Delete(project.ID)
 		return nil, fmt.Errorf("创建项目目录失败: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(projDir, "main.tex"), []byte(defaultMainTex), 0644); err != nil {
+	if err := writeFileAtomic(filepath.Join(projDir, "main.tex"), []byte(defaultMainTex), 0644); err != nil {
 		os.RemoveAll(projDir)
 		s.fileRepo.Delete(mainTex.ID)
 		s.projectRepo.Delete(project.ID)
@@ -88,32 +89,36 @@ func (s *projectService) List() ([]domain.Project, error) {
 }
 
 func (s *projectService) Update(projectID uint, name string) (*domain.Project, error) {
-	project, err := s.projectRepo.FindByID(projectID)
-	if err != nil {
-		return nil, err
-	}
-	project.Name = name
-	if err := s.projectRepo.Update(project); err != nil {
-		return nil, err
-	}
-	return project, nil
+	var project *domain.Project
+	err := s.lockManager.WithProjectLock(projectID, func() error {
+		var err error
+		project, err = s.projectRepo.FindByID(projectID)
+		if err != nil {
+			return err
+		}
+		project.Name = name
+		return s.projectRepo.Update(project)
+	})
+	return project, err
 }
 
 func (s *projectService) Delete(projectID uint) error {
-	if _, err := s.projectRepo.FindByID(projectID); err != nil {
-		return err
-	}
+	return s.lockManager.WithProjectLock(projectID, func() error {
+		if _, err := s.projectRepo.FindByID(projectID); err != nil {
+			return err
+		}
 
-	if err := s.fileRepo.DeleteByProjectID(projectID); err != nil {
-		return err
-	}
-	if err := s.projectRepo.Delete(projectID); err != nil {
-		return err
-	}
+		if err := s.fileRepo.DeleteByProjectID(projectID); err != nil {
+			return err
+		}
+		if err := s.projectRepo.Delete(projectID); err != nil {
+			return err
+		}
 
-	// 清理磁盘上的项目文件
-	projDir := filepath.Join(s.outputDir, fmt.Sprintf("%d", projectID))
-	_ = os.RemoveAll(projDir)
+		// 清理磁盘上的项目文件
+		projDir := filepath.Join(s.outputDir, fmt.Sprintf("%d", projectID))
+		_ = os.RemoveAll(projDir)
 
-	return nil
+		return nil
+	})
 }

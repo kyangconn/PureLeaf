@@ -54,13 +54,13 @@ defineProps({
 }
 
 .loading-icon {
-  color: $color-primary;
+  color: var(--app-primary);
 }
 
 .loading-text {
   margin: 0;
   font-size: 14px;
-  color: $color-text-secondary;
+  color: var(--app-text-secondary);
 }
 
 @keyframes fade-in {

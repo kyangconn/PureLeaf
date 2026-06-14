@@ -40,9 +40,10 @@ func New() (*App, error) {
 
 	projectRepo := repository.NewProjectRepository(db)
 	fileRepo := repository.NewFileRepository(db)
+	lockManager := service.NewProjectLockManager()
 
-	projectSvc := service.NewProjectService(projectRepo, fileRepo, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
-	fileSvc := service.NewFileService(fileRepo, projectRepo, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
+	projectSvc := service.NewProjectService(projectRepo, fileRepo, lockManager, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
+	fileSvc := service.NewFileService(fileRepo, projectRepo, lockManager, cfg.Latex.Compiler, cfg.Latex.Timeout, filepath.Join(filepath.Dir(cfg.Database.Path), "projects"))
 
 	pklog.Infof("goleaf 已就绪")
 	return &App{

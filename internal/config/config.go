@@ -4,6 +4,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -67,6 +69,9 @@ func Load(configPath string) (*Config, error) {
 			Timeout:  v.GetInt("latex.timeout"),
 		},
 	}
+	if strings.TrimSpace(cfg.Database.Path) == "" {
+		cfg.Database.Path = defaultDatabasePath()
+	}
 
 	// ④ 校验关键配置
 	if err := cfg.Validate(); err != nil {
@@ -95,7 +100,15 @@ func bindEnvs(v *viper.Viper) {
 // setDefaults 设置所有配置项的默认值
 func setDefaults(v *viper.Viper) {
 	v.SetDefault("log_file", "")
-	v.SetDefault("database.path", "./data/goleaf.db")
+	v.SetDefault("database.path", defaultDatabasePath())
 	v.SetDefault("latex.compiler", "pdflatex")
 	v.SetDefault("latex.timeout", 60)
+}
+
+func defaultDatabasePath() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil || configDir == "" {
+		return filepath.Join(".", "data", "goleaf.db")
+	}
+	return filepath.Join(configDir, "goleaf", "goleaf.db")
 }

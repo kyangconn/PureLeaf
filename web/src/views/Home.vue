@@ -2,7 +2,10 @@
   <div class="home">
     <main class="home-main">
       <div class="home-toolbar">
-        <h2>项目</h2>
+        <div>
+          <h2>项目</h2>
+          <span>{{ projects.length }} 个项目</span>
+        </div>
       </div>
 
       <Loading v-if="loading" fullscreen>正在加载项目列表...</Loading>
@@ -106,26 +109,33 @@ async function handleDelete(project) {
 
 .home {
   height: 100%;
-  background: $color-bg;
+  background: var(--app-bg);
 }
 
 .home-main {
   position: relative;
   height: 100%;
   overflow-y: auto;
-  padding: 24px;
-  max-width: 800px;
+  padding: 22px;
+  max-width: 920px;
   width: 100%;
   margin: 0 auto;
 }
 
 .home-toolbar {
   @include flex-between;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
+
   h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: $color-text;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--app-text);
+    line-height: 1.4;
+  }
+
+  span {
+    color: var(--app-text-secondary);
+    font-size: 12px;
   }
 }
 </style>

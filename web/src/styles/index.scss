@@ -1,6 +1,109 @@
 @use "variables" as *;
 @use "mixins" as *;
 
+// === 主题变量 ===
+:root,
+.app-theme-light {
+  color-scheme: light;
+  --app-primary: #2f6f4e;
+  --app-primary-hover: #255b40;
+  --app-primary-soft: #e8f2ec;
+  --app-primary-contrast: #ffffff;
+  --app-bg: #f6f7f4;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f0f3ef;
+  --app-header-bg: #fbfcfa;
+  --app-border: #d9ded8;
+  --app-border-strong: #c6cec4;
+  --app-hover-bg: #edf2ee;
+  --app-text: #242824;
+  --app-text-secondary: #6b756c;
+  --app-shadow: 0 14px 40px rgba(30, 36, 30, 0.08);
+}
+
+.app-theme-dark {
+  color-scheme: dark;
+  --app-primary: #83c69a;
+  --app-primary-hover: #9ad7aa;
+  --app-primary-soft: #243629;
+  --app-primary-contrast: #0f1712;
+  --app-bg: #151713;
+  --app-surface: #1f221d;
+  --app-surface-muted: #272b25;
+  --app-header-bg: #1b1e19;
+  --app-border: #343a32;
+  --app-border-strong: #465044;
+  --app-hover-bg: #2a3028;
+  --app-text: #edf1e9;
+  --app-text-secondary: #aab4a7;
+  --app-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+
+:root,
+.editor-theme-dark {
+  --editor-bg: #181a17;
+  --editor-panel-bg: #20231f;
+  --editor-sidebar-bg: #1d201c;
+  --editor-code-bg: #1f211f;
+  --editor-gutter-bg: #1b1d1b;
+  --editor-border: #363c34;
+  --editor-tab-active: #1f211f;
+  --editor-tab-inactive: #262a25;
+  --editor-text: #e3e7de;
+  --editor-text-dim: #9aa49a;
+  --editor-hover-bg: #2a3028;
+  --editor-active-bg: #334338;
+  --editor-active-text: #f7fbf4;
+  --editor-icon: #9ea99d;
+  --editor-dir: #d2a55f;
+  --editor-accent: #84c49d;
+  --editor-accent-soft: #233629;
+  --editor-caret: #a7deb5;
+  --editor-selection: rgba(132, 196, 157, 0.26);
+  --editor-line-number: #788278;
+}
+
+.editor-theme-light {
+  --editor-bg: #eef1ed;
+  --editor-panel-bg: #fbfcfa;
+  --editor-sidebar-bg: #f5f7f4;
+  --editor-code-bg: #fdfefb;
+  --editor-gutter-bg: #f0f3ef;
+  --editor-border: #d6ddd4;
+  --editor-tab-active: #fdfefb;
+  --editor-tab-inactive: #edf1ec;
+  --editor-text: #252b25;
+  --editor-text-dim: #687466;
+  --editor-hover-bg: #e9efe8;
+  --editor-active-bg: #dce9df;
+  --editor-active-text: #193222;
+  --editor-icon: #6c766a;
+  --editor-dir: #9b6a24;
+  --editor-accent: #2f6f4e;
+  --editor-accent-soft: #e2efe7;
+  --editor-caret: #255b40;
+  --editor-selection: rgba(47, 111, 78, 0.18);
+  --editor-line-number: #8a9588;
+}
+
+.app-shell {
+  --el-color-primary: var(--app-primary);
+  --el-color-primary-light-3: var(--app-primary-hover);
+  --el-color-primary-light-5: var(--app-primary);
+  --el-color-primary-light-7: var(--app-primary-soft);
+  --el-color-primary-light-8: var(--app-primary-soft);
+  --el-color-primary-light-9: var(--app-primary-soft);
+  --el-color-primary-dark-2: var(--app-primary-hover);
+  --el-bg-color: var(--app-surface);
+  --el-bg-color-page: var(--app-bg);
+  --el-border-color: var(--app-border);
+  --el-border-color-light: var(--app-border);
+  --el-fill-color-light: var(--app-hover-bg);
+  --el-text-color-primary: var(--app-text);
+  --el-text-color-regular: var(--app-text);
+  --el-text-color-secondary: var(--app-text-secondary);
+}
+
 // === 全局样式重置 ===
 *,
 *::before,
@@ -17,15 +120,26 @@ body,
   font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-shell {
+  height: 100%;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
 // === 全局滚动条 ===
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: var(--app-border-strong);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #909399;
+  background: var(--app-text-secondary);
 }

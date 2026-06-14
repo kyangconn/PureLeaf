@@ -29,9 +29,12 @@
       <section class="settings-section">
         <div class="section-header">
           <h3>编辑器</h3>
-          <span>当前会话</span>
+          <span>本地偏好</span>
         </div>
         <el-form label-width="96px" class="settings-form">
+          <el-form-item label="编辑器主题">
+            <el-segmented v-model="editorTheme" :options="themeOptions" />
+          </el-form-item>
           <el-form-item label="自动保存">
             <el-switch v-model="autoSave" disabled />
           </el-form-item>
@@ -45,11 +48,11 @@
       <section class="settings-section">
         <div class="section-header">
           <h3>界面</h3>
-          <span>计划中</span>
+          <span>本地偏好</span>
         </div>
         <el-form label-width="96px" class="settings-form">
-          <el-form-item label="主题">
-            <el-segmented v-model="theme" disabled :options="themeOptions" />
+          <el-form-item label="应用主题">
+            <el-segmented v-model="appTheme" :options="themeOptions" />
           </el-form-item>
         </el-form>
       </section>
@@ -59,20 +62,24 @@
 
 <script setup>
 import { ref } from "vue";
+import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
+
+import { useThemeStore } from "../stores/theme";
 
 defineOptions({
   name: "AppSettings",
 });
 
 const router = useRouter();
+const themeStore = useThemeStore();
+const { appTheme, editorTheme } = storeToRefs(themeStore);
 
 const compiler = ref("pdflatex");
 const timeout = ref(60);
 const autoSave = ref(true);
 const autoSaveDelay = ref(2000);
-const theme = ref("dark");
 const themeOptions = [
   { label: "亮色", value: "light" },
   { label: "暗色", value: "dark" },
@@ -85,34 +92,35 @@ const themeOptions = [
 
 .settings-page {
   height: 100%;
-  background: $color-bg;
+  background: var(--app-bg);
 }
 
 .settings-main {
   height: 100%;
   overflow-y: auto;
-  padding: 24px;
-  max-width: 860px;
+  padding: 22px;
+  max-width: 920px;
   width: 100%;
   margin: 0 auto;
 }
 
 .settings-toolbar {
   @include flex-between;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 
   h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: $color-text;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--app-text);
   }
 }
 
 .settings-section {
-  background: #fff;
-  border: 1px solid $color-border;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   margin-bottom: 16px;
+  box-shadow: var(--app-shadow);
   overflow: hidden;
 }
 
@@ -120,17 +128,17 @@ const themeOptions = [
   @include flex-between;
   min-height: 44px;
   padding: 0 16px;
-  border-bottom: 1px solid $color-border;
+  border-bottom: 1px solid var(--app-border);
 
   h3 {
     font-size: 15px;
     font-weight: 600;
-    color: $color-text;
+    color: var(--app-text);
   }
 
   span {
     font-size: 12px;
-    color: $color-text-secondary;
+    color: var(--app-text-secondary);
   }
 }
 
@@ -141,6 +149,6 @@ const themeOptions = [
 .field-unit {
   margin-left: 10px;
   font-size: 13px;
-  color: $color-text-secondary;
+  color: var(--app-text-secondary);
 }
 </style>

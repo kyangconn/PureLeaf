@@ -21,6 +21,18 @@
           aria-label="设置"
           @click="$emit('open-settings')"
         />
+        <div class="window-controls">
+          <el-button text :icon="Minus" class="window-btn" title="最小化" aria-label="最小化" @click="minimize" />
+          <el-button
+            text
+            :icon="FullScreen"
+            class="window-btn"
+            title="最大化或还原"
+            aria-label="最大化或还原"
+            @click="toggleMaximize"
+          />
+          <el-button text :icon="Close" class="window-btn close-btn" title="关闭" aria-label="关闭" @click="closeApp" />
+        </div>
       </div>
     </header>
     <main class="layout-main">
@@ -30,13 +42,31 @@
 </template>
 
 <script setup>
-import { Plus, Setting } from "@element-plus/icons-vue";
+import { Close, FullScreen, Minus, Plus, Setting } from "@element-plus/icons-vue";
+
+import { Quit, WindowMinimise, WindowToggleMaximise } from "../../wailsjs/runtime/runtime";
 
 defineProps({
   dark: { default: false, type: Boolean },
 });
 
 defineEmits(["create-project", "open-settings"]);
+
+function hasWailsRuntime() {
+  return Boolean(window.runtime);
+}
+
+function minimize() {
+  if (hasWailsRuntime()) WindowMinimise();
+}
+
+function toggleMaximize() {
+  if (hasWailsRuntime()) WindowToggleMaximise();
+}
+
+function closeApp() {
+  if (hasWailsRuntime()) Quit();
+}
 </script>
 
 <style lang="scss" scoped>
@@ -50,15 +80,17 @@ defineEmits(["create-project", "open-settings"]);
 .layout-header {
   height: $header-height;
   @include flex-between;
-  padding: 0 16px;
-  background: #fff;
-  border-bottom: 1px solid $color-border;
+  padding: 0 14px 0 16px;
+  background: var(--app-header-bg);
+  border-bottom: 1px solid var(--app-border);
   flex-shrink: 0;
+  color: var(--app-text);
+  --wails-draggable: drag;
 
   &--dark {
-    background: $color-panel-bg;
-    border-bottom-color: $color-border-dark;
-    color: $color-text-dark;
+    background: var(--app-header-bg);
+    border-bottom-color: var(--app-border);
+    color: var(--app-text);
   }
 }
 
@@ -76,24 +108,71 @@ defineEmits(["create-project", "open-settings"]);
   display: flex;
   align-items: center;
   gap: 8px;
+  --wails-draggable: no-drag;
 }
 
 .create-project-btn {
-  height: 34px;
-  padding: 0 14px;
-  font-weight: 500;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--app-primary);
+  color: var(--app-primary-contrast);
+  font-weight: 600;
+
+  &:hover,
+  &:focus {
+    background: var(--app-primary-hover);
+    color: var(--app-primary-contrast);
+  }
 }
 
 .settings-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
+  border-color: var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text-secondary);
+
+  &:hover,
+  &:focus {
+    border-color: var(--app-border-strong);
+    background: var(--app-hover-bg);
+    color: var(--app-text);
+  }
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.window-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--app-text-secondary);
+
+  &:hover {
+    color: var(--app-text);
+    background: var(--app-hover-bg);
+  }
+}
+
+.close-btn:hover {
+  color: #fff;
+  background: #f56c6c;
 }
 
 .brand {
-  font-size: 18px;
-  font-weight: 700;
-  color: $color-primary;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--app-primary);
+  letter-spacing: 0;
 }
 
 .layout-main {

@@ -1,34 +1,43 @@
 <template>
   <div class="editor-page">
-    <!-- 次顶栏：返回 / 项目名 / 编译 -->
     <div class="editor-toolbar">
-      <el-button text :icon="ArrowLeft" @click="$router.push('/')">返回</el-button>
+      <div class="toolbar-left">
+        <el-button text class="back-button" :icon="ArrowLeft" @click="$router.push('/')">项目</el-button>
 
-      <div class="project-title-bar">
-        <span v-if="!renamingProject" class="project-title" @dblclick="startRenameProject">
-          {{ project?.name || "加载中..." }}
-        </span>
-        <el-input
-          v-else
-          ref="renameInputRef"
-          v-model="renameProjectName"
-          size="small"
-          class="project-rename-input"
-          @blur="confirmRenameProject"
-          @keyup.enter="confirmRenameProject"
-        />
-        <el-button v-if="!renamingProject" text size="small" :icon="EditPen" @click="startRenameProject" />
+        <div class="project-title-bar">
+          <span v-if="!renamingProject" class="project-title" @dblclick="startRenameProject">
+            {{ project?.name || "加载中..." }}
+          </span>
+          <el-input
+            v-else
+            ref="renameInputRef"
+            v-model="renameProjectName"
+            size="small"
+            class="project-rename-input"
+            @blur="confirmRenameProject"
+            @keyup.enter="confirmRenameProject"
+          />
+          <el-button
+            v-if="!renamingProject"
+            text
+            size="small"
+            class="rename-button"
+            :icon="EditPen"
+            @click="startRenameProject"
+          />
+        </div>
       </div>
 
       <div class="toolbar-actions">
-        <el-button type="primary" size="small" :icon="Upload" :loading="compiling" @click="handleCompile">
-          {{ compiling ? "编译中..." : "编译" }}
+        <el-tooltip content="刷新文件树" placement="bottom">
+          <el-button class="icon-action" :icon="RefreshRight" @click="refreshTree" />
+        </el-tooltip>
+        <el-button type="primary" class="compile-button" :icon="Upload" :loading="compiling" @click="handleCompile">
+          {{ compiling ? "编译中..." : "编译 PDF" }}
         </el-button>
-        <el-button size="small" :icon="RefreshRight" @click="refreshTree">刷新</el-button>
       </div>
     </div>
 
-    <!-- 主体三栏 -->
     <div class="editor-body">
       <aside class="sidebar" :style="{ width: sidebarWidth + 'px' }">
         <FileTree
@@ -45,17 +54,22 @@
 
       <main class="editor-main">
         <div v-if="!activeFile" class="editor-empty">
-          <el-empty description="从左侧文件树选择一个文件开始编辑" />
+          <el-icon :size="42"><Document /></el-icon>
+          <p>未打开文件</p>
         </div>
         <div v-else class="editor-wrapper">
           <div class="editor-tab-bar">
             <span class="editor-tab active">
-              <span class="tab-icon">📄</span>
+              <el-icon :size="14" class="tab-icon"><Document /></el-icon>
               {{ activeFile.name }}
               <el-button text size="small" class="tab-close" :icon="Close" @click="closeActiveFile" />
             </span>
           </div>
           <div ref="editorContainer" class="codemirror-container"></div>
+          <div class="editor-statusbar">
+            <span>{{ activeFile.name }}</span>
+            <span>LaTeX</span>
+          </div>
         </div>
       </main>
 
@@ -71,10 +85,11 @@
 <script setup>
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import { ArrowLeft, Upload, RefreshRight, Close, EditPen } from "@element-plus/icons-vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { ArrowLeft, Close, Document, EditPen, RefreshRight, Upload } from "@element-plus/icons-vue";
 
 import { projectAPI, fileAPI } from "../api";
+import { useThemeStore } from "../stores/theme";
 import FileTree from "../components/FileTree.vue";
 import PdfPreview from "../components/PdfPreview.vue";
 
@@ -82,9 +97,10 @@ defineOptions({
   name: "EditorView",
 });
 
-let EditorView, EditorState, basicSetup, oneDark;
+let EditorView, EditorState, Prec, basicSetup, oneDark;
 
 const route = useRoute();
+const themeStore = useThemeStore();
 const projectId = ref(Number(route.params.id));
 const project = ref(null);
 const fileTree = ref([]);
@@ -128,16 +144,56 @@ async function confirmRenameProject() {
   }
 }
 
-onMounted(async () => {
-  await loadProject();
-  await refreshTree();
-  await initCodeMirror();
-});
+onMounted(loadCurrentProject);
 
 onBeforeUnmount(() => {
   if (cmView) cmView.destroy();
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
 });
+
+watch(
+  () => themeStore.editorTheme,
+  () => {
+    if (!cmView) return;
+    activeFileContent.value = cmView.state.doc.toString();
+    createEditor();
+  },
+);
+
+watch(
+  () => route.params.id,
+  async () => {
+    await loadCurrentProject();
+  },
+);
+
+async function loadCurrentProject() {
+  projectId.value = Number(route.params.id);
+  resetEditorState();
+  await loadProject();
+  await refreshTree();
+  await initCodeMirror();
+  await openInitialFile();
+}
+
+function resetEditorState() {
+  if (cmView) {
+    cmView.destroy();
+    cmView = null;
+  }
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  project.value = null;
+  fileTree.value = [];
+  activeFile.value = null;
+  activeFileContent.value = "";
+  if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value);
+  pdfUrl.value = "";
+  showPdf.value = false;
+  compileLog.value = "";
+}
 
 async function loadProject() {
   try {
@@ -156,22 +212,90 @@ async function refreshTree() {
   }
 }
 
+async function openInitialFile() {
+  const targetName = Array.isArray(route.query.open) ? route.query.open[0] : route.query.open;
+  if (!targetName) return;
+  const target = findFileByName(fileTree.value, String(targetName));
+  if (target) await handleFileSelect(target);
+}
+
+function findFileByName(files, name) {
+  for (const file of files) {
+    if (!file.is_dir && file.name === name) return file;
+    const child = findFileByName(file.children || [], name);
+    if (child) return child;
+  }
+  return null;
+}
+
 async function initCodeMirror() {
-  const [{ basicSetup: bs }, { EditorView: ev }, { EditorState: es }, { oneDark: od }] = await Promise.all([
+  if (EditorView) return;
+  const [{ basicSetup: bs }, { EditorView: ev }, stateModule, { oneDark: od }] = await Promise.all([
     import("codemirror"),
     import("@codemirror/view"),
     import("@codemirror/state"),
     import("@codemirror/theme-one-dark"),
   ]);
   EditorView = ev;
-  EditorState = es;
+  EditorState = stateModule.EditorState;
+  Prec = stateModule.Prec;
   basicSetup = bs;
   oneDark = od;
+}
+
+function buildCodeMirrorTheme(isDark) {
+  return Prec.high(
+    EditorView.theme(
+      {
+        ".cm-activeLine": {
+          backgroundColor: isDark ? "rgba(255, 255, 255, 0.035)" : "rgba(47, 111, 78, 0.06)",
+        },
+        ".cm-activeLineGutter": {
+          backgroundColor: "var(--editor-accent-soft)",
+          color: "var(--editor-accent)",
+        },
+        ".cm-content": {
+          caretColor: "var(--editor-caret)",
+          minHeight: "100%",
+          padding: "18px 0 64px",
+        },
+        ".cm-gutters": {
+          backgroundColor: "var(--editor-gutter-bg)",
+          borderRight: "1px solid var(--editor-border)",
+          color: "var(--editor-line-number)",
+        },
+        ".cm-line": {
+          padding: "0 24px",
+        },
+        ".cm-scroller": {
+          fontFamily: '"Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace',
+          lineHeight: "1.65",
+        },
+        "&": {
+          backgroundColor: "var(--editor-code-bg)",
+          color: "var(--editor-text)",
+          fontSize: "14px",
+          height: "100%",
+        },
+        "&.cm-focused": {
+          outline: "none",
+        },
+        "&.cm-focused .cm-cursor": {
+          borderLeftColor: "var(--editor-caret)",
+        },
+        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+          backgroundColor: "var(--editor-selection)",
+        },
+      },
+      { dark: isDark },
+    ),
+  );
 }
 
 function createEditor() {
   if (!editorContainer.value || !EditorView) return;
   if (cmView) cmView.destroy();
+  const isDark = themeStore.editorTheme === "dark";
 
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
@@ -184,7 +308,13 @@ function createEditor() {
     parent: editorContainer.value,
     state: EditorState.create({
       doc: activeFileContent.value,
-      extensions: [basicSetup, oneDark, updateListener, EditorView.lineWrapping],
+      extensions: [
+        basicSetup,
+        ...(isDark ? [oneDark] : []),
+        buildCodeMirrorTheme(isDark),
+        updateListener,
+        EditorView.lineWrapping,
+      ],
     }),
   });
 }
@@ -304,29 +434,52 @@ function startResize(panel, e) {
 
 .editor-page {
   @include full-page;
-  background: $color-editor-bg;
+  background: var(--editor-bg);
 }
 
 .editor-toolbar {
-  height: 40px;
+  height: 46px;
   @include flex-between;
+  gap: 12px;
   padding: 0 12px;
-  background: $color-panel-bg;
-  border-bottom: 1px solid $color-border-dark;
+  background: var(--editor-panel-bg);
+  border-bottom: 1px solid var(--editor-border);
   flex-shrink: 0;
 }
 
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.back-button,
+.rename-button {
+  color: var(--editor-text-dim);
+
+  &:hover,
+  &:focus {
+    background: var(--editor-hover-bg);
+    color: var(--editor-text);
+  }
+}
+
 .project-title-bar {
-  @include flex-between;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--editor-border);
 }
 
 .project-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: $color-text-dark;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--editor-text);
   @include text-ellipsis;
-  max-width: 260px;
+  max-width: 320px;
 }
 
 .project-rename-input {
@@ -337,30 +490,67 @@ function startResize(panel, e) {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.icon-action {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-color: var(--editor-border);
+  background: var(--editor-panel-bg);
+  color: var(--editor-text-dim);
+
+  &:hover,
+  &:focus {
+    border-color: var(--editor-accent);
+    background: var(--editor-hover-bg);
+    color: var(--editor-text);
+  }
+}
+
+.compile-button {
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--editor-accent);
+  color: var(--app-primary-contrast);
+  font-weight: 600;
+
+  &:hover,
+  &:focus {
+    background: var(--app-primary-hover);
+    color: var(--app-primary-contrast);
+  }
 }
 
 .editor-body {
   flex: 1;
   display: flex;
+  min-height: 0;
+  margin: 12px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
   overflow: hidden;
-  background: $color-editor-bg;
+  background: var(--editor-bg);
+  box-shadow: var(--app-shadow);
 }
 
 .sidebar {
-  background: $color-sidebar;
-  border-right: 1px solid $color-border-dark;
+  background: var(--editor-sidebar-bg);
+  border-right: 1px solid var(--editor-border);
   flex-shrink: 0;
   overflow-y: auto;
 }
 
 .resizer {
-  width: 4px;
-  background: $color-border-dark;
+  width: 5px;
+  background: var(--editor-bg);
   cursor: col-resize;
   flex-shrink: 0;
   transition: background 0.2s;
   &:hover {
-    background: $color-accent;
+    background: var(--editor-accent);
   }
 }
 
@@ -368,12 +558,21 @@ function startResize(panel, e) {
   flex: 1;
   @include flex-column;
   overflow: hidden;
-  background: $color-editor-bg;
+  background: var(--editor-bg);
 }
 
 .editor-empty {
   flex: 1;
   @include flex-center;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--editor-text-dim);
+
+  p {
+    color: var(--editor-text);
+    font-size: 15px;
+    font-weight: 650;
+  }
 }
 
 .editor-wrapper {
@@ -383,11 +582,11 @@ function startResize(panel, e) {
 }
 
 .editor-tab-bar {
-  height: $toolbar-height;
+  height: 38px;
   display: flex;
   align-items: stretch;
-  background: $color-panel-bg;
-  border-bottom: 1px solid $color-border-dark;
+  background: var(--editor-panel-bg);
+  border-bottom: 1px solid var(--editor-border);
   flex-shrink: 0;
   padding: 0 8px;
   gap: 2px;
@@ -397,16 +596,23 @@ function startResize(panel, e) {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
+  min-width: 132px;
+  max-width: 260px;
+  padding: 0 10px 0 12px;
   font-size: 13px;
-  color: $color-text-dark;
-  background: $color-tab-active;
-  border-top: 1px solid $color-accent;
-  margin-top: -1px;
+  font-weight: 550;
+  color: var(--editor-text);
+  background: var(--editor-tab-active);
+  border: 1px solid var(--editor-border);
+  border-bottom-color: var(--editor-tab-active);
+  border-radius: 7px 7px 0 0;
+  margin-top: 5px;
   user-select: none;
+  @include text-ellipsis;
 
   .tab-icon {
-    font-size: 12px;
+    color: var(--editor-text-dim);
+    flex-shrink: 0;
   }
 
   .tab-close {
@@ -422,7 +628,9 @@ function startResize(panel, e) {
 
 .codemirror-container {
   flex: 1;
+  min-height: 0;
   overflow: auto;
+  background: var(--editor-code-bg);
   :deep(.cm-editor) {
     height: 100%;
   }
@@ -431,9 +639,23 @@ function startResize(panel, e) {
   }
 }
 
+.editor-statusbar {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  border-top: 1px solid var(--editor-border);
+  background: var(--editor-panel-bg);
+  color: var(--editor-text-dim);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
 .pdf-panel {
-  background: #fff;
-  border-left: 1px solid $color-border-dark;
+  background: var(--editor-panel-bg);
+  border-left: 1px solid var(--editor-border);
   flex-shrink: 0;
 }
 </style>

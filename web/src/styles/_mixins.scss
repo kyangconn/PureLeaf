@@ -34,16 +34,16 @@
   flex-direction: column;
 }
 
-// 暗色面板表头（文件树标题栏、PDF 标题栏、编辑器 tab 栏等）
+// 编辑器面板表头（文件树标题栏、PDF 标题栏、编辑器 tab 栏等）
 @mixin panel-header($height: $toolbar-height) {
   height: $height;
   @include flex-between;
-  padding: 0 10px;
-  border-bottom: 1px solid $color-border-dark;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--editor-border, #{$color-border-dark});
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
-  color: $color-text-dark-dim;
+  color: var(--editor-text-dim, #{$color-text-dark-dim});
 }
 
 // 自定义滚动条
@@ -53,11 +53,11 @@
     height: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: #424242;
+    background: var(--editor-border);
     border-radius: 3px;
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: var(--editor-text-dim);
   }
 }
 

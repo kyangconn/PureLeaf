@@ -128,33 +128,47 @@ provide("fileTreeActions", {
 .file-tree {
   height: 100%;
   @include flex-column;
+  color: var(--editor-text);
 }
 
 .tree-toolbar {
-  @include panel-header(35px);
+  @include panel-header(38px);
+  background: var(--editor-sidebar-bg);
 }
 
 .tree-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  color: var(--editor-text);
 }
 
 .tree-actions {
   display: flex;
   gap: 2px;
+
+  :deep(.el-button) {
+    width: 28px;
+    height: 28px;
+    color: var(--editor-text-dim);
+
+    &:hover,
+    &:focus {
+      background: var(--editor-hover-bg);
+      color: var(--editor-text);
+    }
+  }
 }
 
 .tree-list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 6px;
+  @include custom-scrollbar;
 }
 
 .tree-empty {
   padding: 16px;
   text-align: center;
-  color: $color-text-dark-dim;
+  color: var(--editor-text-dim);
   font-size: 12px;
 }
 </style>

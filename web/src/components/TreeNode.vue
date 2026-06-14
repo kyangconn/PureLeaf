@@ -111,21 +111,23 @@ async function handleDelete() {
 .node-row {
   display: flex;
   align-items: center;
-  height: $tree-row-height;
+  height: 30px;
   padding-right: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  color: $color-text-dark;
+  color: var(--editor-text);
   transition: background 0.1s;
 
   &:hover {
-    background: $tree-hover-bg;
+    background: var(--editor-hover-bg);
   }
   &.active {
-    background: $tree-active-bg;
+    background: var(--editor-active-bg);
   }
   &.active .node-name {
-    color: #fff;
+    color: var(--editor-active-text);
+    font-weight: 600;
   }
 }
 
@@ -133,17 +135,17 @@ async function handleDelete() {
   width: 16px;
   @include flex-center;
   flex-shrink: 0;
-  color: $tree-icon-color;
+  color: var(--editor-icon);
 }
 
 .node-icon {
-  margin-right: 4px;
+  margin-right: 6px;
   flex-shrink: 0;
-  color: $tree-icon-color;
+  color: var(--editor-icon);
 }
 
 .node-row.is-dir .node-icon {
-  color: $tree-dir-color;
+  color: var(--editor-dir);
 }
 
 .node-name {
@@ -152,17 +154,27 @@ async function handleDelete() {
 }
 
 .node-actions {
-  display: none;
+  display: flex;
+  opacity: 0;
   flex-shrink: 0;
+  transition: opacity 0.12s;
 }
 
 .node-row:hover .node-actions {
-  display: flex;
+  opacity: 1;
 }
 
 .action-btn {
+  width: 24px;
+  height: 24px;
   padding: 2px;
-  color: $tree-icon-color;
+  color: var(--editor-icon);
+
+  &:hover,
+  &:focus {
+    background: var(--editor-hover-bg);
+    color: var(--editor-text);
+  }
 }
 .danger-item {
   color: #f56c6c;
