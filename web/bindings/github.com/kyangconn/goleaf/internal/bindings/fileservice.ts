@@ -82,6 +82,18 @@ export function RenameFile(projectID: number, fileID: number, newName: string): 
     });
 }
 
+export function SynctexForward(projectID: number, input: string, line: number, column: number): $CancellablePromise<$models.SynctexViewDTO | null> {
+    return $Call.ByID(1411938318, projectID, input, line, column).then(($result: any) => {
+        return $$createType14($result);
+    });
+}
+
+export function SynctexInverse(projectID: number, page: number, x: number, y: number): $CancellablePromise<$models.SynctexEditDTO | null> {
+    return $Call.ByID(1177236151, projectID, page, x, y).then(($result: any) => {
+        return $$createType16($result);
+    });
+}
+
 export function UpdateFileContent(projectID: number, fileID: number, content: string): $CancellablePromise<$models.FileDTO | null> {
     return $Call.ByID(1550067197, projectID, fileID, content).then(($result: any) => {
         return $$createType3($result);
@@ -102,3 +114,7 @@ const $$createType9 = $models.ProjectSnapshotDTO.createFrom;
 const $$createType10 = $Create.Array($$createType9);
 const $$createType11 = $models.RevisionContentDTO.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = $models.SynctexViewDTO.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = $models.SynctexEditDTO.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);

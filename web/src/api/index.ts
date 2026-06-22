@@ -45,6 +45,11 @@ export const fileAPI = {
   getRevisionContent: (revId: number) => FileService.GetRevisionContent(revId),
   // 系统
   openProjectFolder: (projectId: number) => FileService.OpenProjectFolder(projectId),
+  // SyncTeX 正反向同步
+  synctexForward: (projectId: number, input: string, line: number, column: number) =>
+    FileService.SynctexForward(projectId, input, line, column),
+  synctexInverse: (projectId: number, page: number, x: number, y: number) =>
+    FileService.SynctexInverse(projectId, page, x, y),
 };
 
 export const latexAPI = {

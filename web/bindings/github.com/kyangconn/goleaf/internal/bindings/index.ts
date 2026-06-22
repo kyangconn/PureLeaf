@@ -20,5 +20,7 @@ export {
     ProjectDTO,
     ProjectSnapshotDTO,
     RevisionContentDTO,
+    SynctexEditDTO,
+    SynctexViewDTO,
     TexLiveDownloadDTO
 } from "./models.js";

@@ -9,7 +9,8 @@
     "build": "vue-tsc -b && vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -25,6 +26,7 @@
     "@wailsio/runtime": "3.0.0-alpha.79",
     "codemirror": "^6.0.2",
     "element-plus": "^2.14.2",
+    "pdfjs-dist": "^6.0.227",
     "pinia": "^2.3.1",
     "vue": "^3.5.38",
     "vue-i18n": "^11.4.5",

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kyangconn/goleaf/internal/domain"
+	"github.com/kyangconn/goleaf/internal/service"
 )
 
 // ProjectDTO is the project shape exposed to Wails bindings.
@@ -65,6 +66,25 @@ type RevisionContentDTO struct {
 // DiffResultDTO 包装两个历史版本间的 unified diff 文本。
 type DiffResultDTO struct {
 	Diff string `json:"diff"`
+}
+
+// SynctexViewDTO 是正向同步（源码 → PDF）结果。
+type SynctexViewDTO struct {
+	Page   int     `json:"page"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	H      float64 `json:"h"`
+	V      float64 `json:"v"`
+	W      float64 `json:"w"`
+	Height float64 `json:"height"`
+}
+
+// SynctexEditDTO 是反向同步（PDF → 源码）结果。
+type SynctexEditDTO struct {
+	Input  string `json:"input"`
+	Line   int    `json:"line"`
+	Column int    `json:"column"`
+	Offset int    `json:"offset"`
 }
 
 func formatTime(t time.Time) string {
@@ -171,4 +191,31 @@ func toProjectSnapshotDTOs(snaps []domain.ProjectSnapshot) []ProjectSnapshotDTO 
 		result = append(result, *toProjectSnapshotDTO(&snaps[i]))
 	}
 	return result
+}
+
+func toSynctexViewDTO(r *service.SynctexViewResult) *SynctexViewDTO {
+	if r == nil {
+		return nil
+	}
+	return &SynctexViewDTO{
+		Page:   r.Page,
+		X:      r.X,
+		Y:      r.Y,
+		H:      r.H,
+		V:      r.V,
+		W:      r.W,
+		Height: r.Height,
+	}
+}
+
+func toSynctexEditDTO(r *service.SynctexEditResult) *SynctexEditDTO {
+	if r == nil {
+		return nil
+	}
+	return &SynctexEditDTO{
+		Input:  r.Input,
+		Line:   r.Line,
+		Column: r.Column,
+		Offset: r.Offset,
+	}
 }

@@ -51,6 +51,9 @@
         <el-tooltip content="在文件夹中打开项目" placement="bottom">
           <el-button class="icon-action" :icon="FolderOpened" @click="handleOpenFolder" />
         </el-tooltip>
+        <el-tooltip content="定位到 PDF（Synctex）" placement="bottom">
+          <el-button class="icon-action" :icon="Aim" :disabled="!showPdf" @click="handleSynctexForward" />
+        </el-tooltip>
         <el-button type="primary" class="compile-button" :icon="Upload" :loading="compiling" @click="handleCompile">
           {{ compiling ? "编译中..." : "编译 PDF" }}
         </el-button>
@@ -98,7 +101,13 @@
       <div v-if="showPdf" class="resizer" @mousedown="startResize('pdf', $event)"></div>
 
       <aside v-if="showPdf" class="pdf-panel" :style="{ width: pdfWidth + 'px' }">
-        <PdfPreview :pdf-url="pdfUrl" :log="compileLog" @close="showPdf = false" />
+        <PdfPreview
+          :pdf-blob-url="pdfUrl"
+          :log="compileLog"
+          :synctex-target="synctexTarget"
+          @close="showPdf = false"
+          @inverse="handleSynctexInverse"
+        />
       </aside>
     </div>
   </div>
@@ -108,7 +117,7 @@
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
-import { ArrowLeft, Close, Document, EditPen, FolderOpened, RefreshRight, Upload } from "@element-plus/icons-vue";
+import { ArrowLeft, Aim, Close, Document, EditPen, FolderOpened, RefreshRight, Upload } from "@element-plus/icons-vue";
 
 import { projectAPI, fileAPI } from "../api";
 import { useThemeStore } from "../stores/theme";
@@ -140,6 +149,9 @@ const pdfWidth = ref(400);
 const editorContainer = ref(null);
 let cmView = null;
 let autoSaveTimer = null;
+
+// ---- SyncTeX ----
+const synctexTarget = ref(null); // { page, v } 触发 PdfPreview 滚动
 
 // ---- 侧面板切换 ----
 const activePanel = ref("files");
@@ -452,6 +464,71 @@ async function handleOpenFolder() {
   } catch {
     /* handled */
   }
+}
+
+// ---- SyncTeX 正反向同步 ----
+
+// 正向同步：当前光标位置 → PDF 对应区域
+async function handleSynctexForward() {
+  if (!cmView || !activeFile.value || !showPdf.value) return;
+  try {
+    const pos = cmView.state.selection.main.head;
+    const line = cmView.state.doc.lineAt(pos).number;
+    // synctex 期望的 input 是 TeX 认识的文件名，这里用文件的相对路径（根目录下即文件名）
+    const input = activeFile.value.name;
+    const result = await fileAPI.synctexForward(projectId.value, input, line, 0);
+    if (result && result.page > 0) {
+      // 触发 PdfPreview 滚动：每次都创建新对象让 watch 捕获
+      synctexTarget.value = { page: result.page, ts: Date.now(), v: result.v || result.y };
+    }
+  } catch (err) {
+    ElMessage.warning(err?.message || "无法定位到 PDF，请确认已开启 synctex 编译");
+  }
+}
+
+// 反向同步：PDF 点击 → 跳转编辑器光标
+async function handleSynctexInverse({ page, x, y }) {
+  try {
+    const result = await fileAPI.synctexInverse(projectId.value, page, x, y);
+    if (!result || !result.line) return;
+    // 查找对应文件并打开，然后定位到行
+    const fileName = extractFileName(result.input);
+    await ensureFileOpenByName(fileName);
+    jumpToLine(result.line, Math.max(0, result.column));
+  } catch (err) {
+    ElMessage.warning(err?.message || "无法定位到源码");
+  }
+}
+
+// 从 synctex 返回的绝对/相对路径提取文件名
+function extractFileName(inputPath) {
+  if (!inputPath) return "";
+  const normalized = inputPath.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] || "";
+}
+
+// 确保某个文件名的文件已打开（用于反向同步跳转）
+async function ensureFileOpenByName(fileName) {
+  if (!fileName) return;
+  if (activeFile.value && activeFile.value.name === fileName) return;
+  const found = findFileByName(fileTree.value, fileName);
+  if (found) await handleFileSelect(found);
+}
+
+// 跳转到指定行列
+function jumpToLine(line, column) {
+  if (!cmView) return;
+  const doc = cmView.state.doc;
+  if (line < 1 || line > doc.lines) return;
+  const lineObj = doc.line(line);
+  const col = Math.min(column || 0, Math.max(0, lineObj.length));
+  const pos = lineObj.from + col;
+  cmView.dispatch({
+    scrollIntoView: true,
+    selection: { anchor: pos, head: pos },
+  });
+  cmView.focus();
 }
 
 function startResize(panel, e) {

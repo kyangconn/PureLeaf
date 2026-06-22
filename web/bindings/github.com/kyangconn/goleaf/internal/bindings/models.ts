@@ -342,6 +342,90 @@ export class RevisionContentDTO {
     }
 }
 
+/**
+ * SynctexEditDTO 是反向同步（PDF → 源码）结果。
+ */
+export class SynctexEditDTO {
+    "input": string;
+    "line": number;
+    "column": number;
+    "offset": number;
+
+    /** Creates a new SynctexEditDTO instance. */
+    constructor($$source: Partial<SynctexEditDTO> = {}) {
+        if (!("input" in $$source)) {
+            this["input"] = "";
+        }
+        if (!("line" in $$source)) {
+            this["line"] = 0;
+        }
+        if (!("column" in $$source)) {
+            this["column"] = 0;
+        }
+        if (!("offset" in $$source)) {
+            this["offset"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SynctexEditDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SynctexEditDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SynctexEditDTO($$parsedSource as Partial<SynctexEditDTO>);
+    }
+}
+
+/**
+ * SynctexViewDTO 是正向同步（源码 → PDF）结果。
+ */
+export class SynctexViewDTO {
+    "page": number;
+    "x": number;
+    "y": number;
+    "h": number;
+    "v": number;
+    "w": number;
+    "height": number;
+
+    /** Creates a new SynctexViewDTO instance. */
+    constructor($$source: Partial<SynctexViewDTO> = {}) {
+        if (!("page" in $$source)) {
+            this["page"] = 0;
+        }
+        if (!("x" in $$source)) {
+            this["x"] = 0;
+        }
+        if (!("y" in $$source)) {
+            this["y"] = 0;
+        }
+        if (!("h" in $$source)) {
+            this["h"] = 0;
+        }
+        if (!("v" in $$source)) {
+            this["v"] = 0;
+        }
+        if (!("w" in $$source)) {
+            this["w"] = 0;
+        }
+        if (!("height" in $$source)) {
+            this["height"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SynctexViewDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SynctexViewDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SynctexViewDTO($$parsedSource as Partial<SynctexViewDTO>);
+    }
+}
+
 export class TexLiveDownloadDTO {
     "variant": string;
     "scheme": string;

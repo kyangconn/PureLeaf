@@ -34,6 +34,10 @@ type FileService interface {
 
 	// 系统
 	OpenProjectFolder(projectID uint) error
+
+	// SyncTeX 正反向同步
+	SynctexForward(projectID uint, input string, line, column int) (*SynctexViewResult, error)
+	SynctexInverse(projectID uint, page int, x, y float64) (*SynctexEditResult, error)
 }
 
 type fileService struct {
@@ -420,6 +424,7 @@ func (s *fileService) Compile(projectID uint) (string, string, error) {
 
 		cmd := exec.CommandContext(ctx, s.compiler,
 			"-interaction=nonstopmode",
+			"-synctex=1",
 			"-output-directory="+workDir,
 			mainFile,
 		)

@@ -115,3 +115,19 @@ func (s *FileService) DiffRevisions(revA, revB uint) (*DiffResultDTO, error) {
 func (s *FileService) OpenProjectFolder(projectID uint) error {
 	return s.files.OpenProjectFolder(projectID)
 }
+
+func (s *FileService) SynctexForward(projectID uint, input string, line, column int) (*SynctexViewDTO, error) {
+	result, err := s.files.SynctexForward(projectID, input, line, column)
+	if err != nil {
+		return nil, err
+	}
+	return toSynctexViewDTO(result), nil
+}
+
+func (s *FileService) SynctexInverse(projectID uint, page int, x, y float64) (*SynctexEditDTO, error) {
+	result, err := s.files.SynctexInverse(projectID, page, x, y)
+	if err != nil {
+		return nil, err
+	}
+	return toSynctexEditDTO(result), nil
+}
