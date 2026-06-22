@@ -31,6 +31,10 @@
 *.lai
 *.la
 *.a
+*.so
+*.so.*
+*.dll
+*.exe
 *.lib
 
 # Executables
@@ -70,3 +74,7 @@ Testing/
 # IDEs
 .vs/
 .idea/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -22,6 +22,8 @@ target_link_libraries(desktop-qt
     PRIVATE
         Qt::Core
         Qt::Widgets
+        pureleaf_core
+        pureleaf_platform_desktop
 )
 
 install(TARGETS desktop-qt
