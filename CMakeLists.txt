@@ -22,6 +22,7 @@ endif()
 
 option(PURELEAF_BUILD_QT "Build PureLeaf Qt desktop app" ON)
 option(PURELEAF_BUILD_TESTS "Build unit tests (requires network for FetchContent)" OFF)
+option(PURELEAF_USE_BUNDLED_QWINDOWKIT "Use bundled QWindowKit" ON)
 
 add_subdirectory(core)
 add_subdirectory(capi)
