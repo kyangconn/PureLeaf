@@ -25,6 +25,11 @@ tasks:
     cmds:
       - task: "{{OS}}:package"
 
+  package:release:from-build:
+    summary: Creates release package artifacts from an existing platform build
+    cmds:
+      - task: "{{OS}}:package:release:from-build"
+
   run:
     summary: Runs the application
     cmds:

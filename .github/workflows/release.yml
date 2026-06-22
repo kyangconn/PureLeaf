@@ -3,35 +3,293 @@ name: Release
 on:
   push:
     tags:
-      - "*"
+      - "v*"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version used for manual runs"
+        required: true
+        default: "0.1.0"
+      cleanup_old_releases:
+        description: "Delete release/tag pairs older than the keep count"
+        required: true
+        default: false
+        type: boolean
+      keep_releases:
+        description: "Number of version pairs to keep when cleanup is enabled"
+        required: true
+        default: "10"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APP_NAME: goleaf
+  NODE_VERSION: "24.15"
+  PNPM_VERSION: "11.6.0"
 
 jobs:
-  release:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
     strategy:
-      # Failure in one platform build won't impact the others
       fail-fast: false
       matrix:
-        build:
-          - name: "goleaf-linux-amd64"
-            platform: "linux/amd64"
-            os: "ubuntu-latest"
-          - name: "goleaf-windows-amd64"
-            platform: "windows/amd64"
-            os: "windows-latest"
-          - name: "goleaf-macos"
-            platform: "darwin/universal"
-            os: "macos-latest"
+        include:
+          - target: linux-amd64
+            os: ubuntu-24.04
+            goos: linux
+            goarch: amd64
+            archive: tar.gz
+            package: appimage
+          - target: windows-amd64
+            os: windows-2025
+            goos: windows
+            goarch: amd64
+            archive: zip
+            package: exe
+          - target: darwin-amd64
+            os: macos-15-intel
+            goos: darwin
+            goarch: amd64
+            archive: tar.gz
+            package: app
+          - target: darwin-arm64
+            os: macos-15
+            goos: darwin
+            goarch: arm64
+            archive: tar.gz
+            package: app
 
-    runs-on: ${{ matrix.build.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - name: Build wails
-        uses: dAppServer/wails-build-action@v2
+      - name: Setup Go
+        uses: actions/setup-go@v6
         with:
-          build-name: ${{ matrix.build.name }}
-          build-platform: ${{ matrix.build.platform }}
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          cache: true
+          cache_dependency_path: web/pnpm-lock.yaml
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+
+      - name: Install Wails CLI from go.mod
+        shell: bash
+        run: |
+          set -euo pipefail
+          WAILS_VERSION="$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)"
+          go install "github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}"
+
+      - name: Verify toolchain
+        run: |
+          go version
+          node --version
+          pnpm --version
+          wails3 version
+          wails3 task -list
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+
+      - name: Generate bindings
+        run: wails3 generate bindings -clean=true -ts -d web/bindings
+
+      - name: Set reproducible timestamp
+        shell: bash
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "${GITHUB_ENV}"
+
+      - name: Build archive binary
+        run: wails3 build ARCH=${{ matrix.goarch }}
+
+      - name: Create archive asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          binary="./bin/${APP_NAME}"
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then
+            binary="${binary}.exe"
+          fi
+          export BINARY="${binary}"
+          python -c "import os; p=os.environ['BINARY']; t=int(os.environ['SOURCE_DATE_EPOCH']); os.utime(p, (t, t))"
+          if [[ "${{ matrix.archive }}" == "zip" ]]; then
+            (cd bin && 7z a "../dist/${APP_NAME}-${{ matrix.target }}-archive.zip" "${APP_NAME}.exe")
+          else
+            export COPYFILE_DISABLE=1
+            tar -cf "dist/${APP_NAME}-${{ matrix.target }}-archive.tar" -C bin "${APP_NAME}"
+            gzip -n "dist/${APP_NAME}-${{ matrix.target }}-archive.tar"
+          fi
+
+      - name: Create package asset
+        run: wails3 task package:release:from-build ARCH=${{ matrix.goarch }}
+
+      - name: Collect package asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [[ "${{ matrix.package }}" == "exe" ]]; then
+            cp "bin/${APP_NAME}.exe" "dist/${APP_NAME}-${{ matrix.target }}.exe"
+          elif [[ "${{ matrix.package }}" == "appimage" ]]; then
+            appimage="$(find bin -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
+            if [[ -z "${appimage}" ]]; then
+              echo "No AppImage produced under bin/" >&2
+              exit 1
+            fi
+            cp "${appimage}" "dist/${APP_NAME}-${{ matrix.target }}.AppImage"
+          elif [[ "${{ matrix.package }}" == "app" ]]; then
+            python -c "import os; root=os.environ['APP_BUNDLE']; t=int(os.environ['SOURCE_DATE_EPOCH']); [os.utime(os.path.join(d, f), (t, t)) for d, _, fs in os.walk(root) for f in fs]"
+            export COPYFILE_DISABLE=1
+            tar -cf "dist/${APP_NAME}-${{ matrix.target }}.app.tar" -C bin "${APP_NAME}.app"
+            gzip -n "dist/${APP_NAME}-${{ matrix.target }}.app.tar"
+          fi
+        env:
+          APP_BUNDLE: bin/goleaf.app
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            raw_version="${GITHUB_REF_NAME}"
+          else
+            raw_version="${{ inputs.version }}"
+          fi
+          version="${raw_version#v}"
+          version="${version%-archive}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "latest_tag=v${version}" >> "${GITHUB_OUTPUT}"
+          echo "latest_title=${version}" >> "${GITHUB_OUTPUT}"
+          echo "archive_tag=v${version}-archive" >> "${GITHUB_OUTPUT}"
+          echo "archive_title=${version}-archive" >> "${GITHUB_OUTPUT}"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Split release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/archive dist/latest
+          find dist -maxdepth 1 -type f -name '*-archive.*' -exec mv {} dist/archive/ \;
+          find dist -maxdepth 1 -type f ! -name '*-archive.*' -exec mv {} dist/latest/ \;
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist/archive && find . -maxdepth 1 -type f -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS.txt)
+          (cd dist/latest && find . -maxdepth 1 -type f -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS.txt)
+
+      - name: Update archive release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.archive_tag }}
+          TITLE: ${{ steps.meta.outputs.archive_title }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --title "${TITLE}"
+            gh release upload "${TAG}" dist/archive/* --clobber
+          else
+            gh release create "${TAG}" dist/archive/* --title "${TITLE}" --generate-notes --target "${GITHUB_SHA}" --latest=false
+          fi
+
+      - name: Update latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.latest_tag }}
+          TITLE: ${{ steps.meta.outputs.latest_title }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --title "${TITLE}" --latest
+            gh release upload "${TAG}" dist/latest/* --clobber
+          else
+            gh release create "${TAG}" dist/latest/* --title "${TITLE}" --generate-notes --target "${GITHUB_SHA}" --latest
+          fi
+
+  cleanup:
+    name: Cleanup old releases
+    if: github.event_name == 'workflow_dispatch' && inputs.cleanup_old_releases == true
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Delete old release/tag pairs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP_RELEASES: ${{ inputs.keep_releases }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          old_versions="$(
+            gh release list --limit 200 --json tagName,createdAt |
+              jq -r --argjson keep "${KEEP_RELEASES}" '
+                map(select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(-archive)?$")))
+                | map(. + {base: (.tagName | sub("^v"; "") | sub("-archive$"; ""))})
+                | group_by(.base)
+                | map(max_by(.createdAt))
+                | sort_by(.createdAt)
+                | reverse
+                | .[$keep:]
+                | .[].base
+              '
+          )"
+
+          if [[ -z "${old_versions}" ]]; then
+            echo "No old releases to clean up."
+            exit 0
+          fi
+
+          while IFS= read -r version; do
+            [[ -z "${version}" ]] && continue
+            for tag in "v${version}" "v${version}-archive"; do
+              if gh release view "${tag}" >/dev/null 2>&1; then
+                gh release delete "${tag}" --yes
+              fi
+              if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}"
+              fi
+            done
+          done <<< "${old_versions}"

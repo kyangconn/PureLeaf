@@ -104,6 +104,11 @@ tasks:
       FORMAT: '{{.FORMAT | default "nsis"}}'
       INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
 
+  package:release:from-build:
+    summary: Uses the existing Windows executable as the release package artifact
+    cmds:
+      - powershell -NoProfile -Command "if (!(Test-Path '{{.BIN_DIR}}/{{.APP_NAME}}.exe')) { throw 'Missing {{.BIN_DIR}}/{{.APP_NAME}}.exe. Run wails3 build first.' }"
+
   generate:syso:
     summary: Generates Windows `.syso` file
     dir: build

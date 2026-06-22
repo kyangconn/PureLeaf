@@ -105,15 +105,34 @@ tasks:
       - task: build
     cmds:
       - task: create:appimage
+
+  package:release:from-build:
+    summary: Creates Linux release package artifacts from an existing binary
+    cmds:
+      - task: create:appimage:from-binary
+
+  package:all:
+    summary: Packages the application for Linux in every configured format
+    deps:
+      - task: build
+    cmds:
+      - task: create:appimage
       - task: create:deb
       - task: create:rpm
       - task: create:aur
 
   create:appimage:
     summary: Creates an AppImage
-    dir: build/linux/appimage
     deps:
       - task: build
+      - task: generate:dotdesktop
+    cmds:
+      - task: create:appimage:from-binary
+
+  create:appimage:from-binary:
+    summary: Creates an AppImage from the existing Linux binary
+    dir: build/linux/appimage
+    deps:
       - task: generate:dotdesktop
     cmds:
       - cp "{{.APP_BINARY}}" "{{.APP_NAME}}"

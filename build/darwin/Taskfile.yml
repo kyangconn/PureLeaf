@@ -125,6 +125,11 @@ tasks:
     cmds:
       - task: create:app:bundle
 
+  package:release:from-build:
+    summary: Creates a macOS `.app` bundle from an existing binary
+    cmds:
+      - task: create:app:bundle
+
   package:universal:
     summary: Packages darwin universal binary (arm64 + amd64)
     deps:

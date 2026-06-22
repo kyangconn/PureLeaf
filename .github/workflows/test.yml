@@ -1,0 +1,100 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24.15"
+  PNPM_VERSION: "11.6.0"
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          cache: true
+          cache_dependency_path: web/pnpm-lock.yaml
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify toolchain
+        run: |
+          node --version
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm exec vue-tsc -b --noEmit
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify toolchain
+        run: go version
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Gofmt check
+        shell: bash
+        run: |
+          set -euo pipefail
+          fmt_output="$(gofmt -l $(git ls-files '*.go'))"
+          if [[ -n "${fmt_output}" ]]; then
+            echo "::error::The following Go files need gofmt:"
+            echo "${fmt_output}"
+            exit 1
+          fi
+
+      - name: Go vet
+        run: go vet ./internal/...
+
+      - name: Go test
+        run: go test -v -count=1 -race ./internal/...
