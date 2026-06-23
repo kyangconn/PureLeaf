@@ -20,7 +20,7 @@ if(NOT TARGET pureleaf_platform_desktop)
     )
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Svg Widgets LinguistTools)
 
 qt_standard_project_setup()
 
@@ -55,6 +55,8 @@ qt_add_executable(desktop-qt
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    components/icons/appicon.cpp
+    components/icons/appicon.h
     core/navigator.cpp
     core/navigator.h
     core/navpage.h
@@ -64,6 +66,27 @@ qt_add_executable(desktop-qt
     pages/editor/editorpage.h
     pages/settings/settingspage.cpp
     pages/settings/settingspage.h
+)
+
+set(_pureleaf_lucide_icon_dir
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/lucide"
+)
+qt_add_resources(desktop-qt "pureleaf_icons"
+    PREFIX "/pureleaf/icons/lucide"
+    BASE "${_pureleaf_lucide_icon_dir}"
+    FILES
+        "${_pureleaf_lucide_icon_dir}/arrow-left.svg"
+        "${_pureleaf_lucide_icon_dir}/copy.svg"
+        "${_pureleaf_lucide_icon_dir}/ellipsis.svg"
+        "${_pureleaf_lucide_icon_dir}/file-plus.svg"
+        "${_pureleaf_lucide_icon_dir}/folder-open.svg"
+        "${_pureleaf_lucide_icon_dir}/git-branch.svg"
+        "${_pureleaf_lucide_icon_dir}/leaf.svg"
+        "${_pureleaf_lucide_icon_dir}/minus.svg"
+        "${_pureleaf_lucide_icon_dir}/settings.svg"
+        "${_pureleaf_lucide_icon_dir}/square.svg"
+        "${_pureleaf_lucide_icon_dir}/trash-2.svg"
+        "${_pureleaf_lucide_icon_dir}/x.svg"
 )
 
 qt_add_translations(
@@ -81,11 +104,37 @@ target_compile_features(desktop-qt PRIVATE cxx_std_20)
 target_link_libraries(desktop-qt
     PRIVATE
         Qt::Core
+        Qt::Svg
         Qt::Widgets
         QWindowKit::Widgets
         pureleaf_core
         pureleaf_platform_desktop
 )
+
+option(PURELEAF_DEPLOY_QT_AFTER_BUILD
+    "Deploy the Qt runtime next to the Windows desktop executable after linking"
+    ON
+)
+
+if(WIN32 AND PURELEAF_DEPLOY_QT_AFTER_BUILD)
+    get_target_property(_qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qt_qmake_executable}" DIRECTORY)
+    find_program(PURELEAF_WINDEPLOYQT_EXECUTABLE
+        NAMES windeployqt
+        HINTS "${_qt_bin_dir}"
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+
+    add_custom_command(TARGET desktop-qt POST_BUILD
+        COMMAND "${PURELEAF_WINDEPLOYQT_EXECUTABLE}"
+            --no-translations
+            --dir "$<TARGET_FILE_DIR:desktop-qt>"
+            "$<TARGET_FILE:desktop-qt>"
+        COMMENT "Deploying the Qt runtime for desktop-qt"
+        VERBATIM
+    )
+endif()
 
 install(TARGETS desktop-qt
     BUNDLE  DESTINATION .

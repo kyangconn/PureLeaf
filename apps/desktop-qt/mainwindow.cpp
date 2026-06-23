@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QEvent>
+#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPoint>
@@ -11,6 +12,7 @@
 #include <QStyle>
 #include <QToolButton>
 
+#include "components/icons/appicon.h"
 #include "core/navigator.h"
 #include "pages/editor/editorpage.h"
 #include "pages/home/homepage.h"
@@ -69,7 +71,8 @@ void MainWindow::setupWindowChrome() {
 
     auto* iconButton = new QToolButton(titleBar_);
     iconButton->setObjectName(QStringLiteral("windowIconButton"));
-    iconButton->setText(QStringLiteral("P"));
+    iconButton->setIcon(appIcon(AppIcon::Leaf, QColor(QStringLiteral("#ffffff"))));
+    iconButton->setIconSize(QSize(18, 18));
     iconButton->setToolTip(tr("系统菜单"));
     iconButton->setFixedSize(30, 30);
     iconButton->setFocusPolicy(Qt::NoFocus);
@@ -78,12 +81,16 @@ void MainWindow::setupWindowChrome() {
     titleLabel_->setObjectName(QStringLiteral("windowTitleLabel"));
     titleLabel_->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
-    auto createWindowButton = [this](const QString& name, const QString& text,
+    auto createWindowButton = [this](const QString& name, AppIcon icon,
                                      const QString& toolTip) {
         auto* button = new QToolButton(titleBar_);
         button->setObjectName(name);
         button->setProperty("windowControl", true);
-        button->setText(text);
+        const QColor activeColor = icon == AppIcon::WindowClose
+                                       ? QColor(QStringLiteral("#ffffff"))
+                                       : QColor(QStringLiteral("#0f172a"));
+        button->setIcon(appIcon(icon, QColor(QStringLiteral("#334155")), activeColor));
+        button->setIconSize(QSize(17, 17));
         button->setToolTip(toolTip);
         button->setFixedSize(46, 46);
         button->setFocusPolicy(Qt::NoFocus);
@@ -91,14 +98,25 @@ void MainWindow::setupWindowChrome() {
     };
 
     auto* minimizeButton = createWindowButton(QStringLiteral("minimizeButton"),
-                                              QStringLiteral("\u2212"), tr("最小化"));
-    maximizeButton_ = createWindowButton(QStringLiteral("maximizeButton"), QStringLiteral("\u25a1"),
-                                         tr("最大化"));
-    auto* closeButton =
-        createWindowButton(QStringLiteral("closeButton"), QStringLiteral("\u00d7"), tr("关闭"));
+                                              AppIcon::WindowMinimize, tr("最小化"));
+    maximizeButton_ = createWindowButton(QStringLiteral("maximizeButton"),
+                                         AppIcon::WindowMaximize, tr("最大化"));
+    auto* closeButton = createWindowButton(QStringLiteral("closeButton"), AppIcon::WindowClose,
+                                           tr("关闭"));
+
+    auto* settingsButton = new QToolButton(titleBar_);
+    settingsButton->setObjectName(QStringLiteral("titleBarSettingsButton"));
+    settingsButton->setProperty("appAction", true);
+    settingsButton->setIcon(appIcon(AppIcon::Settings, QColor(QStringLiteral("#475569")),
+                                    QColor(QStringLiteral("#0f172a"))));
+    settingsButton->setIconSize(QSize(18, 18));
+    settingsButton->setToolTip(tr("设置"));
+    settingsButton->setFixedSize(40, 40);
+    settingsButton->setFocusPolicy(Qt::NoFocus);
 
     layout->addWidget(iconButton);
     layout->addWidget(titleLabel_, 1);
+    layout->addWidget(settingsButton);
     layout->addWidget(minimizeButton);
     layout->addWidget(maximizeButton_);
     layout->addWidget(closeButton);
@@ -109,6 +127,7 @@ void MainWindow::setupWindowChrome() {
     windowAgent_->setSystemButton(QWK::WindowAgentBase::Minimize, minimizeButton);
     windowAgent_->setSystemButton(QWK::WindowAgentBase::Maximize, maximizeButton_);
     windowAgent_->setSystemButton(QWK::WindowAgentBase::Close, closeButton);
+    windowAgent_->setHitTestVisible(settingsButton, true);
 
     connect(iconButton, &QToolButton::clicked, this, [this, iconButton]() {
         windowAgent_->showSystemMenu(iconButton->mapToGlobal(QPoint(0, iconButton->height())));
@@ -117,6 +136,8 @@ void MainWindow::setupWindowChrome() {
     connect(maximizeButton_, &QToolButton::clicked, this,
             [this]() { isMaximized() ? showNormal() : showMaximized(); });
     connect(closeButton, &QToolButton::clicked, this, &QWidget::close);
+    connect(settingsButton, &QToolButton::clicked, this,
+            [this]() { navigator_->navigateTo(PageId::Settings); });
     connect(this, &QWidget::windowTitleChanged, titleLabel_, &QLabel::setText);
 
 #ifdef Q_OS_WIN
@@ -182,6 +203,19 @@ void MainWindow::setupWindowChrome() {
             color: white;
             background: #e81123;
         }
+
+        QToolButton[appAction="true"] {
+            color: #475569;
+            background: transparent;
+            border: none;
+            border-radius: 7px;
+            font-size: 17px;
+        }
+
+        QToolButton[appAction="true"]:hover {
+            color: #0f172a;
+            background: #e2e8f0;
+        }
     )"));
 
     updateWindowChrome();
@@ -195,8 +229,10 @@ void MainWindow::updateWindowChrome() {
     titleBar_->style()->polish(titleBar_);
 
     if (maximizeButton_) {
-        maximizeButton_->setText(isMaximized() ? QStringLiteral("\u2750")
-                                               : QStringLiteral("\u25a1"));
+        maximizeButton_->setIcon(appIcon(isMaximized() ? AppIcon::WindowRestore
+                                                       : AppIcon::WindowMaximize,
+                                         QColor(QStringLiteral("#334155")),
+                                         QColor(QStringLiteral("#0f172a"))));
         maximizeButton_->setToolTip(isMaximized() ? tr("还原") : tr("最大化"));
     }
 }
@@ -213,14 +249,19 @@ void MainWindow::wireNavigation() {
         navigator_->navigateTo(PageId::Editor, projectId);
     });
 
-    // Home -> Settings
-    connect(homePage_, &HomePage::settingsRequested, this,
-            [this]() { navigator_->navigateTo(PageId::Settings); });
-
     // Home -> new project (for now, also opens editor with empty id)
     connect(homePage_, &HomePage::newProjectRequested, this, [this]() {
         // TODO: show project creation dialog, then open editor.
         navigator_->navigateTo(PageId::Editor, QString{});
+    });
+
+    // Home -> open a local workspace folder.
+    connect(homePage_, &HomePage::openFolderRequested, this, [this]() {
+        const QString folder = QFileDialog::getExistingDirectory(
+            this, tr("打开本地文件夹"), QString{}, QFileDialog::ShowDirsOnly);
+        if (!folder.isEmpty()) {
+            navigator_->navigateTo(PageId::Editor, folder);
+        }
     });
 
     // Editor -> Home

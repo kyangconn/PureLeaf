@@ -8,6 +8,8 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include "components/icons/appicon.h"
+
 namespace pureleaf::ui {
 
 SettingsPage::SettingsPage(QWidget *parent) : NavPage(parent) {
@@ -24,6 +26,9 @@ void SettingsPage::setupUi() {
     topBar->setFixedHeight(48);
     auto *topLayout = new QHBoxLayout(topBar);
     auto *backBtn = new QPushButton(tr("返回"), topBar);
+    backBtn->setIcon(appIcon(AppIcon::Back, QColor(QStringLiteral("#475569")),
+                             QColor(QStringLiteral("#0f172a"))));
+    backBtn->setIconSize(QSize(18, 18));
     auto *title = new QLabel(tr("设置"), topBar);
     title->setAlignment(Qt::AlignCenter);
     topLayout->addWidget(backBtn);

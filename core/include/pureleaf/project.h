@@ -11,6 +11,7 @@ struct Project {
     std::string id;
     std::string name;
     std::string rootPath;
+    std::string mainTex;  ///< Relative path to the main .tex file (empty if unset).
     int64_t createdAt = 0;
     int64_t updatedAt = 0;
 };

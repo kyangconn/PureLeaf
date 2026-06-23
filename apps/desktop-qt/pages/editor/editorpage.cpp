@@ -6,6 +6,8 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 
+#include "components/icons/appicon.h"
+
 namespace pureleaf::ui {
 
 EditorPage::EditorPage(QWidget *parent) : NavPage(parent) {
@@ -25,6 +27,9 @@ void EditorPage::setupUi() {
     auto *topLayout = new QHBoxLayout(topBar);
 
     auto *backBtn = new QPushButton(tr("返回"), topBar);
+    backBtn->setIcon(appIcon(AppIcon::Back, QColor(QStringLiteral("#475569")),
+                             QColor(QStringLiteral("#0f172a"))));
+    backBtn->setIconSize(QSize(18, 18));
     auto *projectName = new QLabel(tr("未打开项目"), topBar);
     projectName->setAlignment(Qt::AlignCenter);
 

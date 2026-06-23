@@ -1,29 +1,58 @@
 #pragma once
 
+#include <QList>
+#include <QString>
+
 #include "core/navpage.h"
+
+class QLabel;
+class QVBoxLayout;
 
 namespace pureleaf::ui {
 
+struct RecentProject {
+    enum class GitState {
+        Unknown,
+        NoRepository,
+        Clean,
+        Modified,
+        Conflict,
+    };
+
+    QString id;
+    QString name;
+    QString rootPath;
+    qint64 characterCount = 0;
+    GitState gitState = GitState::Unknown;
+};
+
 /// Home page — project list / launcher.
-/// Shows existing projects and a "new project" entry point.
+/// Shows primary workspace actions and the recent-project list.
 class HomePage : public NavPage {
     Q_OBJECT
 
 public:
-    explicit HomePage(QWidget *parent = nullptr);
+    explicit HomePage(QWidget* parent = nullptr);
 
-    void onPageEntered(const QVariant &payload) override;
+    void onPageEntered(const QVariant& payload) override;
+    void setRecentProjects(const QList<RecentProject>& projects);
 
 signals:
     /// Emitted when the user wants to open a project.
-    void projectOpenRequested(const QString &projectId);
-    /// Emitted when the user wants to go to settings.
-    void settingsRequested();
-    /// Emitted when the user wants to create a new project.
+    void projectOpenRequested(const QString& projectKey);
     void newProjectRequested();
+    void openFolderRequested();
+    void recentProjectRemoved(const QString& projectKey);
 
 private:
     void setupUi();
+    void rebuildRecentList();
+    QWidget* createRecentProjectRow(const RecentProject& project);
+    static QString projectKey(const RecentProject& project);
+
+    QList<RecentProject> recentProjects_;
+    QVBoxLayout* recentListLayout_;
+    QLabel* emptyStateLabel_;
 };
 
 }  // namespace pureleaf::ui

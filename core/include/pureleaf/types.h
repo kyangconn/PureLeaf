@@ -18,10 +18,13 @@ enum class Error {
 /// Simple Result wrapper. T must be default-constructible.
 template <typename T>
 struct Result {
-    T value{};
+    T value_{};
     Error error = Error::None;
 
     bool ok() const { return error == Error::None; }
+
+    T& value() { return value_; }
+    const T& value() const { return value_; }
 
     static Result<T> Ok(T v) { return {std::move(v), Error::None}; }
     static Result<T> Err(Error e) { return {T{}, e}; }
