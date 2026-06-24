@@ -129,10 +129,10 @@ TEST_F(RepoTest, RevisionCRUD) {
     auto proj = projectRepo.create("TestProj", "/tmp/proj");
     ASSERT_TRUE(proj.ok());
 
-    // Insert a file row referencing the project.
+    // Insert a file row referencing the project (new schema: parent_id + name).
     std::string insertSql =
-        "INSERT INTO files(id, project_id, path, is_dir, created_at) "
-        "VALUES('f1','" + proj.value().id + "','main.tex',0,1000)";
+        "INSERT INTO files(id, project_id, parent_id, name, is_dir, created_at) "
+        "VALUES('f1','" + proj.value().id + "',NULL,'main.tex',0,1000)";
     ASSERT_TRUE(db.exec(insertSql));
 
     pureleaf::RevisionRepo repo(db);

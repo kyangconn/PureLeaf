@@ -25,35 +25,35 @@
 
 ### 1. 存储与项目基础
 
-- [ ] SHA-256 实现
+- [x] SHA-256 实现
   - vendor 一个单头文件 SHA-256 到 `third_party/`，或内联到 `core/src/storage.cpp`
   - `BlobStorage::sha256Hex()` 通过测试
-- [ ] BlobStorage 读写
+- [x] BlobStorage 读写
   - `writeBlob(content) → hash`：写入 blob 文件，返回 SHA-256
   - `readBlob(hash) → content`：从分片目录读取
   - `exists(hash) → bool`
   - `deleteBlob(hash)`（供 GC 使用）
-- [ ] 项目仓库（ProjectRepository）
+- [x] 项目仓库（ProjectRepository）
   - SQLite 存储（通过 `core/` 内 vendor 的 SQLite 或 JSON 文件方案）
   - CRUD：Create(name) / FindByID / FindAll / Update / Delete
   - 磁盘目录：`{userDataDir}/projects/{id}/`
-- [ ] 文件仓库（FileRepository）
+- [x] 文件仓库（FileRepository）
   - 邻接表树结构（parent_id、name、is_dir）
   - CRUD + FindByProjectID + FindByParentID
   - 文件内容从磁盘读取，不存数据库
   - 路径计算（从根到节点的相对路径拼接）
-- [ ] 项目服务（ProjectService）
+- [x] 项目服务（ProjectService）
   - Create：创建项目目录 + 写入 `main.tex` 模板 + 写入 DB 元数据
   - 补偿式创建：磁盘失败 → 回滚 DB
   - Delete：级联删除文件 + 清理磁盘
   - Update（重命名）
-- [ ] 文件服务（FileService）
+- [x] 文件服务（FileService）
   - GetTree：扁平列表 → 树结构
   - GetContent / UpdateContent：磁盘读写 + 原子写
   - Create / Rename / Delete：DB 元数据 + 磁盘操作
   - 路径安全校验：拒绝 `..`、绝对路径、非法字符、同级重名
   - 递归删除子孙节点
-- [ ] 项目锁（ProjectLockManager）
+- [x] 项目锁（ProjectLockManager）
   - 从 Go 版 port 到 C++：`std::mutex` per project，序列化同一项目的并发操作
 
 ### 2. 文件版本管理

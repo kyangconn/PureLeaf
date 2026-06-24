@@ -19,14 +19,18 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 -- ── Files (tracked entries in the project tree) ────────────
+-- Adjacency-list model: parent_id → children.
 CREATE TABLE IF NOT EXISTS files (
     id          TEXT PRIMARY KEY,
     project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    path        TEXT NOT NULL,
+    parent_id   TEXT,                  -- NULL or empty = root level
+    name        TEXT NOT NULL,          -- bare name, no path separators
     is_dir      INTEGER NOT NULL DEFAULT 0,
     created_at  INTEGER NOT NULL,
-    UNIQUE(project_id, path)
+    UNIQUE(project_id, parent_id, name)
 );
+CREATE INDEX IF NOT EXISTS idx_files_parent
+    ON files(project_id, parent_id);
 
 -- ── File revisions (point to content-addressed blobs) ──────
 -- file_id has NO cascade: we keep history even after file deletion.

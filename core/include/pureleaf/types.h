@@ -30,4 +30,15 @@ struct Result {
     static Result<T> Err(Error e) { return {T{}, e}; }
 };
 
+/// void specialization — for operations that only succeed or fail.
+template <>
+struct Result<void> {
+    Error error = Error::None;
+
+    bool ok() const { return error == Error::None; }
+
+    static Result<void> Ok() { return {Error::None}; }
+    static Result<void> Err(Error e) { return {e}; }
+};
+
 }  // namespace pureleaf

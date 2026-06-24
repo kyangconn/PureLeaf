@@ -2,6 +2,7 @@
 
 #include "pureleaf/types.h"
 
+#include <cstdint>
 #include <string>
 
 namespace pureleaf {
@@ -19,12 +20,27 @@ public:
     static std::string blobRelativePath(const std::string& hash);
 
     /// Computes the SHA-256 hex digest of `content`.
-    /// TODO: vendor a SHA-256 implementation into third_party/.
     static std::string sha256Hex(const std::string& content);
+
+    /// Writes content to blob storage. Returns the SHA-256 hash, or empty on
+    /// error. If the blob already exists (same hash), it is a no-op (dedup).
+    std::string writeBlob(const std::string& content);
+
+    /// Reads blob content by hash. Returns empty Result with IoError on miss.
+    Result<std::string> readBlob(const std::string& hash);
+
+    /// Checks whether a blob exists.
+    bool exists(const std::string& hash);
+
+    /// Deletes a blob. Used by GC.
+    bool deleteBlob(const std::string& hash);
 
     const std::string& rootDir() const { return rootDir_; }
 
 private:
+    /// Returns the absolute path for a given hash.
+    std::string blobFullPath(const std::string& hash);
+
     std::string rootDir_;
 };
 

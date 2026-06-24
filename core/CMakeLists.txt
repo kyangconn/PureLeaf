@@ -4,11 +4,18 @@ add_library(pureleaf_core STATIC
     src/synctex.cpp
     src/database.cpp
     src/repo.cpp
+    src/file_repo.cpp
+    src/project_service.cpp
+    src/file_service.cpp
+    src/lock_manager.cpp
+    src/path_util.cpp
 )
 
 target_include_directories(pureleaf_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/third_party/sha256
 )
 
 # Core targets C++17 for maximum portability (HarmonyOS BiSheng / MSVC / GCC).

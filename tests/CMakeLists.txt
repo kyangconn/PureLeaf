@@ -17,6 +17,7 @@ include(GoogleTest)
 
 add_executable(pureleaf_tests
     test_smoke.cpp
+    test_services.cpp
 )
 
 target_link_libraries(pureleaf_tests
