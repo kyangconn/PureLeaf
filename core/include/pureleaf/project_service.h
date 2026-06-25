@@ -1,13 +1,13 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "pureleaf/file_repo.h"
 #include "pureleaf/lock_manager.h"
 #include "pureleaf/project.h"
 #include "pureleaf/repo.h"
 #include "pureleaf/types.h"
-
-#include <string>
-#include <vector>
 
 namespace pureleaf {
 

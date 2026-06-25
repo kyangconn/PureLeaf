@@ -26,8 +26,7 @@ enum class AppIcon {
     Delete,
 };
 
-QIcon appIcon(AppIcon icon, const QColor& color,
-              const QColor& activeColor = QColor{});
+QIcon appIcon(AppIcon icon, const QColor& color, const QColor& activeColor = QColor{});
 
 QPixmap appIconPixmap(AppIcon icon, const QSize& size, const QColor& color,
                       const QColor& activeColor = QColor{});

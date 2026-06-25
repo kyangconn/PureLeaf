@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <fstream>
+
 #include "pureleaf/database.h"
 #include "pureleaf/file_repo.h"
 #include "pureleaf/file_service.h"
@@ -8,9 +11,6 @@
 #include "pureleaf/project_service.h"
 #include "pureleaf/repo.h"
 #include "pureleaf/storage.h"
-
-#include <filesystem>
-#include <fstream>
 
 namespace fs = std::filesystem;
 

@@ -1,12 +1,12 @@
 #include "pureleaf/file_service.h"
 
-#include "pureleaf/database.h"
-#include "pureleaf/path_util.h"
-
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+
+#include "pureleaf/database.h"
+#include "pureleaf/path_util.h"
 
 namespace pureleaf {
 
@@ -17,8 +17,8 @@ FileService::FileService(Database& db, ProjectLockManager& lockManager)
 
 // ── Tree building ─────────────────────────────────────────────────
 
-TreeNode FileService::buildTree(const std::vector<FileEntry>& entries,
-                                const std::string& parentId, const std::string& basePath) {
+TreeNode FileService::buildTree(const std::vector<FileEntry>& entries, const std::string& parentId,
+                                const std::string& basePath) {
     TreeNode node;
     node.id = parentId;
 
@@ -28,11 +28,11 @@ TreeNode FileService::buildTree(const std::vector<FileEntry>& entries,
             child.id = entry.id;
             child.name = entry.name;
             child.isDir = entry.isDir;
-            child.relativePath = basePath.empty() ? entry.name : path_util::join(basePath, entry.name);
+            child.relativePath =
+                basePath.empty() ? entry.name : path_util::join(basePath, entry.name);
 
             if (entry.isDir) {
-                child.children =
-                    std::vector<TreeNode>{};
+                child.children = std::vector<TreeNode>{};
                 // Recurse: we need a subtree, so call buildTree for this child.
                 auto subTree = buildTree(entries, entry.id, child.relativePath);
                 child.children = std::move(subTree.children);
@@ -76,11 +76,10 @@ Result<TreeNode> FileService::getTree(const std::string& projectId) {
         }
     }
 
-    std::sort(root.children.begin(), root.children.end(),
-              [](const TreeNode& a, const TreeNode& b) {
-                  if (a.isDir != b.isDir) return a.isDir;
-                  return a.name < b.name;
-              });
+    std::sort(root.children.begin(), root.children.end(), [](const TreeNode& a, const TreeNode& b) {
+        if (a.isDir != b.isDir) return a.isDir;
+        return a.name < b.name;
+    });
 
     return Result<TreeNode>::Ok(std::move(root));
 }

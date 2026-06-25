@@ -1,9 +1,9 @@
 #pragma once
 
-#include "pureleaf/types.h"
-
 #include <cstdint>
 #include <string>
+
+#include "pureleaf/types.h"
 
 namespace pureleaf {
 

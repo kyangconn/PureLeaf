@@ -9,7 +9,7 @@ class SettingsPage : public NavPage {
     Q_OBJECT
 
 public:
-    explicit SettingsPage(QWidget *parent = nullptr);
+    explicit SettingsPage(QWidget* parent = nullptr);
 
 signals:
     void backRequested();

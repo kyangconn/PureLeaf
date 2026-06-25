@@ -369,8 +369,7 @@ QWidget* HomePage::createRecentProjectRow(const RecentProject& project) {
     QAction* openAction = menu->addAction(
         appIcon(AppIcon::OpenFolder, QColor(QStringLiteral("#475569"))), tr("打开"));
     QAction* removeAction = menu->addAction(
-        appIcon(AppIcon::Delete, QColor(QStringLiteral("#dc2626"))),
-        tr("从最近项目中移除"));
+        appIcon(AppIcon::Delete, QColor(QStringLiteral("#dc2626"))), tr("从最近项目中移除"));
     moreButton->setMenu(menu);
 
     const QString key = projectKey(project);

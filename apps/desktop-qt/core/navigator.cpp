@@ -1,25 +1,26 @@
 #include "navigator.h"
-#include "navpage.h"
 
 #include <QStackedWidget>
 #include <QWidget>
 
+#include "navpage.h"
+
 namespace pureleaf::ui {
 
-Navigator::Navigator(QStackedWidget *stack, QObject *parent)
+Navigator::Navigator(QStackedWidget* stack, QObject* parent)
     : QObject(parent), stack_(stack), current_(PageId::Home) {}
 
-void Navigator::registerPage(PageId id, QWidget *page) {
+void Navigator::registerPage(PageId id, QWidget* page) {
     const int index = stack_->addWidget(page);
     indexMap_[id] = index;
 }
 
-void Navigator::navigateTo(PageId id, const QVariant &payload) {
+void Navigator::navigateTo(PageId id, const QVariant& payload) {
     auto it = indexMap_.constFind(id);
     if (it == indexMap_.constEnd()) return;
 
     // Notify the page we're leaving.
-    if (auto *leaving = qobject_cast<NavPage *>(stack_->currentWidget())) {
+    if (auto* leaving = qobject_cast<NavPage*>(stack_->currentWidget())) {
         leaving->onPageLeft();
     }
 
@@ -27,8 +28,8 @@ void Navigator::navigateTo(PageId id, const QVariant &payload) {
     current_ = id;
 
     // Forward the payload to the target page.
-    auto *page = stack_->widget(it.value());
-    if (auto *navPage = qobject_cast<NavPage *>(page)) {
+    auto* page = stack_->widget(it.value());
+    if (auto* navPage = qobject_cast<NavPage*>(page)) {
         navPage->onPageEntered(payload);
     }
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/navpage.h"
-
 #include <QString>
+
+#include "core/navpage.h"
 
 class QLabel;
 
@@ -16,9 +16,9 @@ class EditorPage : public NavPage {
     Q_OBJECT
 
 public:
-    explicit EditorPage(QWidget *parent = nullptr);
+    explicit EditorPage(QWidget* parent = nullptr);
 
-    void onPageEntered(const QVariant &payload) override;
+    void onPageEntered(const QVariant& payload) override;
     void onPageLeft() override;
 
 signals:

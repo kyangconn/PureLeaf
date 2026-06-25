@@ -9,7 +9,6 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QSvgRenderer>
-
 #include <array>
 #include <utility>
 
@@ -72,12 +71,11 @@ QByteArray lucideSvg(const char* name) {
 class LucideIconEngine final : public QIconEngine {
 public:
     LucideIconEngine(QByteArray svg, QColor color, QColor activeColor)
-        : svg_(std::move(svg)), color_(std::move(color)),
+        : svg_(std::move(svg)),
+          color_(std::move(color)),
           activeColor_(activeColor.isValid() ? std::move(activeColor) : color_) {}
 
-    QIconEngine* clone() const override {
-        return new LucideIconEngine(svg_, color_, activeColor_);
-    }
+    QIconEngine* clone() const override { return new LucideIconEngine(svg_, color_, activeColor_); }
 
     QString key() const override { return QStringLiteral("PureLeafLucide"); }
 
@@ -103,8 +101,7 @@ public:
         renderer.render(painter, QRectF(rect));
     }
 
-    QPixmap pixmap(const QSize& size, QIcon::Mode mode,
-                   QIcon::State state) override {
+    QPixmap pixmap(const QSize& size, QIcon::Mode mode, QIcon::State state) override {
         const qreal dpr = qApp == nullptr ? 1.0 : qApp->devicePixelRatio();
         const QSize pixelSize(qRound(size.width() * dpr), qRound(size.height() * dpr));
         QPixmap result(pixelSize);

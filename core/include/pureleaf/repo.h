@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pureleaf/project.h"
-#include "pureleaf/types.h"
-
 #include <string>
 #include <vector>
+
+#include "pureleaf/project.h"
+#include "pureleaf/types.h"
 
 namespace pureleaf {
 
@@ -44,8 +44,7 @@ public:
     explicit RevisionRepo(Database& db);
 
     /// Records a new revision for a file.
-    Result<Revision> create(const std::string& fileId, const std::string& blobHash,
-                            int64_t size);
+    Result<Revision> create(const std::string& fileId, const std::string& blobHash, int64_t size);
 
     /// Lists revisions for a file, newest first.
     Result<std::vector<Revision>> listByFile(const std::string& fileId);

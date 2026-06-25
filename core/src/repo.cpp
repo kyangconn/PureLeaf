@@ -1,12 +1,12 @@
 #include "pureleaf/repo.h"
 
-#include "pureleaf/database.h"
-
 #include <sqlite3.h>
 
 #include <chrono>
 #include <cstdio>
 #include <random>
+
+#include "pureleaf/database.h"
 
 namespace pureleaf {
 
@@ -23,8 +23,7 @@ static std::string generateId() {
     std::random_device rd;
     std::mt19937_64 gen(rd());
     char buf[48];
-    std::snprintf(buf, sizeof(buf), "%llx-%08lx",
-                  static_cast<unsigned long long>(t),
+    std::snprintf(buf, sizeof(buf), "%llx-%08lx", static_cast<unsigned long long>(t),
                   static_cast<unsigned long>(gen()));
     return buf;
 }
@@ -96,8 +95,9 @@ Result<Project> ProjectRepo::create(const std::string& name, const std::string& 
 }
 
 Result<Project> ProjectRepo::get(const std::string& id) {
-    const char* sql = "SELECT id, name, root_path, main_tex, created_at, updated_at "
-                      "FROM projects WHERE id = ?";
+    const char* sql =
+        "SELECT id, name, root_path, main_tex, created_at, updated_at "
+        "FROM projects WHERE id = ?";
 
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db_.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
@@ -118,8 +118,9 @@ Result<Project> ProjectRepo::get(const std::string& id) {
 }
 
 Result<std::vector<Project>> ProjectRepo::list() {
-    const char* sql = "SELECT id, name, root_path, main_tex, created_at, updated_at "
-                      "FROM projects ORDER BY updated_at DESC";
+    const char* sql =
+        "SELECT id, name, root_path, main_tex, created_at, updated_at "
+        "FROM projects ORDER BY updated_at DESC";
 
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db_.handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {

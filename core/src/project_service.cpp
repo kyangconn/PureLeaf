@@ -1,11 +1,11 @@
 #include "pureleaf/project_service.h"
 
-#include "pureleaf/database.h"
-
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+
+#include "pureleaf/database.h"
 
 namespace pureleaf {
 

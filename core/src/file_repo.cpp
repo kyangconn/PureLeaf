@@ -1,12 +1,12 @@
 #include "pureleaf/file_repo.h"
 
-#include "pureleaf/database.h"
-
 #include <sqlite3.h>
 
 #include <chrono>
 #include <cstdio>
 #include <random>
+
+#include "pureleaf/database.h"
 
 namespace pureleaf {
 
@@ -20,8 +20,7 @@ static std::string generateId() {
     std::random_device rd;
     std::mt19937_64 gen(rd());
     char buf[48];
-    std::snprintf(buf, sizeof(buf), "%llx-%08lx",
-                  static_cast<unsigned long long>(t),
+    std::snprintf(buf, sizeof(buf), "%llx-%08lx", static_cast<unsigned long long>(t),
                   static_cast<unsigned long>(gen()));
     return buf;
 }
@@ -104,8 +103,8 @@ Result<FileEntry> FileRepo::get(const std::string& id) {
     return Result<FileEntry>::Ok(std::move(e));
 }
 
-Result<FileEntry> FileRepo::findByName(const std::string& projectId,
-                                       const std::string& parentId, const std::string& name) {
+Result<FileEntry> FileRepo::findByName(const std::string& projectId, const std::string& parentId,
+                                       const std::string& name) {
     // Use COALESCE to match NULL parent_id when parentId is empty.
     std::string sql =
         "SELECT id, project_id, parent_id, name, is_dir, created_at "

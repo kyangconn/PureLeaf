@@ -24,10 +24,8 @@ struct SyncTexReverse {
 
 /// Converts a SyncTeX forward-search hit (in synctex big points) to
 /// pdf.js canvas coordinates, accounting for zoom.
-inline SyncTexForward synctexToPdfjs(int page, double synctexX, double synctexY,
-                                     double scale) {
-    return {page, synctexX * kSynctexPdfjsRatio * scale,
-            synctexY * kSynctexPdfjsRatio * scale};
+inline SyncTexForward synctexToPdfjs(int page, double synctexX, double synctexY, double scale) {
+    return {page, synctexX * kSynctexPdfjsRatio * scale, synctexY * kSynctexPdfjsRatio * scale};
 }
 
 }  // namespace pureleaf

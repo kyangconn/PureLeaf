@@ -18,11 +18,11 @@
 #include <QPoint>
 #include <QProcess>
 #include <QScreen>
+#include <QSet>
 #include <QSettings>
 #include <QStackedWidget>
 #include <QStandardPaths>
 #include <QStyle>
-#include <QSet>
 #include <QToolButton>
 
 #include "components/icons/appicon.h"
@@ -57,8 +57,7 @@ QString projectIdentity(const QString& path) {
 }
 
 QString defaultProjectDialogPath() {
-    const QString documents =
-        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     return documents.isEmpty() ? QDir::homePath() : documents;
 }
 
@@ -70,18 +69,13 @@ QString displayNameForProjectRoot(const QString& rootPath) {
 
 qint64 estimateCharacterCount(const QString& rootPath) {
     static const QStringList filters = {
-        QStringLiteral("*.tex"),
-        QStringLiteral("*.bib"),
-        QStringLiteral("*.cls"),
-        QStringLiteral("*.sty"),
-        QStringLiteral("*.md"),
-        QStringLiteral("*.txt"),
+        QStringLiteral("*.tex"), QStringLiteral("*.bib"), QStringLiteral("*.cls"),
+        QStringLiteral("*.sty"), QStringLiteral("*.md"),  QStringLiteral("*.txt"),
     };
 
     qint64 countedBytes = 0;
     qint64 characters = 0;
-    QDirIterator it(rootPath, filters, QDir::Files | QDir::Readable,
-                    QDirIterator::Subdirectories);
+    QDirIterator it(rootPath, filters, QDir::Files | QDir::Readable, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QString filePath = it.next();
         const QFileInfo info(filePath);
@@ -276,14 +270,12 @@ void MainWindow::setupWindowChrome() {
     titleLabel_->setObjectName(QStringLiteral("windowTitleLabel"));
     titleLabel_->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
-    auto createWindowButton = [this](const QString& name, AppIcon icon,
-                                     const QString& toolTip) {
+    auto createWindowButton = [this](const QString& name, AppIcon icon, const QString& toolTip) {
         auto* button = new QToolButton(titleBar_);
         button->setObjectName(name);
         button->setProperty("windowControl", true);
-        const QColor activeColor = icon == AppIcon::WindowClose
-                                       ? QColor(QStringLiteral("#ffffff"))
-                                       : QColor(QStringLiteral("#0f172a"));
+        const QColor activeColor = icon == AppIcon::WindowClose ? QColor(QStringLiteral("#ffffff"))
+                                                                : QColor(QStringLiteral("#0f172a"));
         button->setIcon(appIcon(icon, QColor(QStringLiteral("#334155")), activeColor));
         button->setIconSize(QSize(17, 17));
         button->setToolTip(toolTip);
@@ -292,12 +284,12 @@ void MainWindow::setupWindowChrome() {
         return button;
     };
 
-    auto* minimizeButton = createWindowButton(QStringLiteral("minimizeButton"),
-                                              AppIcon::WindowMinimize, tr("最小化"));
-    maximizeButton_ = createWindowButton(QStringLiteral("maximizeButton"),
-                                         AppIcon::WindowMaximize, tr("最大化"));
-    auto* closeButton = createWindowButton(QStringLiteral("closeButton"), AppIcon::WindowClose,
-                                           tr("关闭"));
+    auto* minimizeButton =
+        createWindowButton(QStringLiteral("minimizeButton"), AppIcon::WindowMinimize, tr("最小化"));
+    maximizeButton_ =
+        createWindowButton(QStringLiteral("maximizeButton"), AppIcon::WindowMaximize, tr("最大化"));
+    auto* closeButton =
+        createWindowButton(QStringLiteral("closeButton"), AppIcon::WindowClose, tr("关闭"));
 
     auto* settingsButton = new QToolButton(titleBar_);
     settingsButton->setObjectName(QStringLiteral("titleBarSettingsButton"));
@@ -418,8 +410,8 @@ void MainWindow::setupWindowChrome() {
 
 void MainWindow::applyInitialWindowSize() {
     const QScreen* primaryScreen = QGuiApplication::primaryScreen();
-    const QRect available = primaryScreen ? primaryScreen->availableGeometry()
-                                          : QRect(0, 0, 1280, 800);
+    const QRect available =
+        primaryScreen ? primaryScreen->availableGeometry() : QRect(0, 0, 1280, 800);
 
     const int minWidth = minimumWidth();
     const int minHeight = minimumHeight();
@@ -445,10 +437,9 @@ void MainWindow::updateWindowChrome() {
     titleBar_->style()->polish(titleBar_);
 
     if (maximizeButton_) {
-        maximizeButton_->setIcon(appIcon(isMaximized() ? AppIcon::WindowRestore
-                                                       : AppIcon::WindowMaximize,
-                                         QColor(QStringLiteral("#334155")),
-                                         QColor(QStringLiteral("#0f172a"))));
+        maximizeButton_->setIcon(
+            appIcon(isMaximized() ? AppIcon::WindowRestore : AppIcon::WindowMaximize,
+                    QColor(QStringLiteral("#334155")), QColor(QStringLiteral("#0f172a"))));
         maximizeButton_->setToolTip(isMaximized() ? tr("还原") : tr("最大化"));
     }
 }
@@ -461,14 +452,11 @@ void MainWindow::setupPages() {
 
 void MainWindow::wireNavigation() {
     // Home -> Editor (open project)
-    connect(homePage_, &HomePage::projectOpenRequested, this, [this](const QString& projectKey) {
-        openProject(projectKey);
-    });
+    connect(homePage_, &HomePage::projectOpenRequested, this,
+            [this](const QString& projectKey) { openProject(projectKey); });
 
     // Home -> new blank project.
-    connect(homePage_, &HomePage::newProjectRequested, this, [this]() {
-        createBlankProject();
-    });
+    connect(homePage_, &HomePage::newProjectRequested, this, [this]() { createBlankProject(); });
 
     // Home -> open a local workspace folder.
     connect(homePage_, &HomePage::openFolderRequested, this, [this]() {
@@ -588,9 +576,9 @@ void MainWindow::openProject(const QString& rootPath) {
     const QString normalized = normalizedProjectPath(rootPath);
     const QFileInfo info(normalized);
     if (!info.exists() || !info.isDir()) {
-        QMessageBox::warning(this, tr("无法打开项目"),
-                             tr("这个项目路径不存在：\n%1")
-                                 .arg(QDir::toNativeSeparators(normalized)));
+        QMessageBox::warning(
+            this, tr("无法打开项目"),
+            tr("这个项目路径不存在：\n%1").arg(QDir::toNativeSeparators(normalized)));
         removeRecentProject(normalized);
         return;
     }
@@ -607,9 +595,8 @@ void MainWindow::createBlankProject() {
     }
 
     bool ok = false;
-    const QString projectName = QInputDialog::getText(
-                                    this, tr("新建空白项目"), tr("项目名称"), QLineEdit::Normal,
-                                    tr("Untitled"), &ok)
+    const QString projectName = QInputDialog::getText(this, tr("新建空白项目"), tr("项目名称"),
+                                                      QLineEdit::Normal, tr("Untitled"), &ok)
                                     .trimmed();
     if (!ok || projectName.isEmpty()) {
         return;
@@ -628,14 +615,13 @@ void MainWindow::createBlankProject() {
         if (!isEmpty) {
             QMessageBox::warning(
                 this, tr("目录已存在"),
-                tr("目标目录已经存在且不为空：\n%1")
-                    .arg(QDir::toNativeSeparators(projectRoot)));
+                tr("目标目录已经存在且不为空：\n%1").arg(QDir::toNativeSeparators(projectRoot)));
             return;
         }
     } else if (!QDir().mkpath(projectRoot)) {
-        QMessageBox::critical(this, tr("创建失败"),
-                              tr("无法创建项目目录：\n%1")
-                                  .arg(QDir::toNativeSeparators(projectRoot)));
+        QMessageBox::critical(
+            this, tr("创建失败"),
+            tr("无法创建项目目录：\n%1").arg(QDir::toNativeSeparators(projectRoot)));
         return;
     }
 

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pureleaf/project.h"
-#include "pureleaf/types.h"
-
 #include <string>
 #include <vector>
+
+#include "pureleaf/project.h"
+#include "pureleaf/types.h"
 
 namespace pureleaf {
 

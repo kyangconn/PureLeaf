@@ -122,6 +122,7 @@ PureLeaf/
 
 - C++：Google 风格，4 空格缩进（见 `.clang-format`）
 - Qt：遵循 Qt 命名约定（`camelCase` 成员、`Q_OBJECT` 宏）
+- 本地格式化：运行 `make format` 自动修正；运行 `make lint` 只检查
 - 提交信息：中文，格式 `类型: 简述`
 
 ---

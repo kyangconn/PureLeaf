@@ -1,17 +1,16 @@
-#include "pureleaf_c/pureleaf.h"
+#include <string>
 
 #include "pureleaf/storage.h"
 #include "pureleaf/synctex.h"
 #include "pureleaf/version.h"
-
-#include <string>
+#include "pureleaf_c/pureleaf.h"
 
 extern "C" {
 
 const char* pl_version(void) {
     static const std::string s = std::to_string(pureleaf::getVersion().major) + "." +
-                                  std::to_string(pureleaf::getVersion().minor) + "." +
-                                  std::to_string(pureleaf::getVersion().patch);
+                                 std::to_string(pureleaf::getVersion().minor) + "." +
+                                 std::to_string(pureleaf::getVersion().patch);
     return s.c_str();
 }
 
@@ -20,10 +19,9 @@ const char* pl_version_full(void) {
 }
 
 const char* pl_build_info(void) {
-    static const std::string s = pureleaf::getVersion().gitHash + "@" +
-                                  pureleaf::getVersion().gitBranch + ", " +
-                                  pureleaf::getVersion().compiler + ", " +
-                                  pureleaf::getVersion().platform;
+    static const std::string s =
+        pureleaf::getVersion().gitHash + "@" + pureleaf::getVersion().gitBranch + ", " +
+        pureleaf::getVersion().compiler + ", " + pureleaf::getVersion().platform;
     return s.c_str();
 }
 

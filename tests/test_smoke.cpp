@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+
 #include "pureleaf/database.h"
+#include "pureleaf/desktop/platform.h"
 #include "pureleaf/diff.h"
 #include "pureleaf/repo.h"
 #include "pureleaf/storage.h"
 #include "pureleaf/synctex.h"
 #include "pureleaf_c/pureleaf.h"
-#include "pureleaf/desktop/platform.h"
-
-#include <filesystem>
 
 /// Smoke tests that verify the architecture compiles and links across
 /// core, capi, and platform layers. Feature implementations come later.
@@ -80,9 +80,7 @@ protected:
         fs::remove(dbPath_);
     }
 
-    void TearDown() override {
-        fs::remove(dbPath_);
-    }
+    void TearDown() override { fs::remove(dbPath_); }
 
     std::string dbPath_;
     static inline int counter_ = 0;
@@ -149,7 +147,8 @@ TEST_F(RepoTest, RevisionCRUD) {
     // Insert a file row referencing the project (new schema: parent_id + name).
     std::string insertSql =
         "INSERT INTO files(id, project_id, parent_id, name, is_dir, created_at) "
-        "VALUES('f1','" + proj.value().id + "',NULL,'main.tex',0,1000)";
+        "VALUES('f1','" +
+        proj.value().id + "',NULL,'main.tex',0,1000)";
     ASSERT_TRUE(db.exec(insertSql));
 
     pureleaf::RevisionRepo repo(db);
