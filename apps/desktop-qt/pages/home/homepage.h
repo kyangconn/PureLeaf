@@ -5,8 +5,10 @@
 
 #include "core/navpage.h"
 
-class QLabel;
+class QHBoxLayout;
+class QSpacerItem;
 class QVBoxLayout;
+class QWidget;
 
 namespace pureleaf::ui {
 
@@ -47,12 +49,17 @@ signals:
 private:
     void setupUi();
     void rebuildRecentList();
+    void updateRecentPanelVisibility();
     QWidget* createRecentProjectRow(const RecentProject& project);
     static QString projectKey(const RecentProject& project);
 
     QList<RecentProject> recentProjects_;
+    QHBoxLayout* rootLayout_;
+    QWidget* actionPanel_;
+    QWidget* recentPanel_;
+    QSpacerItem* leadingSpacer_;
+    QSpacerItem* trailingSpacer_;
     QVBoxLayout* recentListLayout_;
-    QLabel* emptyStateLabel_;
 };
 
 }  // namespace pureleaf::ui

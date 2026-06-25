@@ -14,6 +14,15 @@ extern "C" {
 /// Library version string (static storage, do not free).
 const char* pl_version(void);
 
+/// Full version string with build metadata (e.g. "0.1.0-dev+abc1234").
+const char* pl_version_full(void);
+
+/// Build metadata: git hash@branch, compiler, platform.
+const char* pl_build_info(void);
+
+/// Update channel: "stable", "beta", "ci", or "dev".
+const char* pl_update_channel(void);
+
 /* ---- SyncTeX --------------------------------------------------------- */
 
 typedef struct {

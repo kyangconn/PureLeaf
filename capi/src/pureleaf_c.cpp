@@ -2,13 +2,33 @@
 
 #include "pureleaf/storage.h"
 #include "pureleaf/synctex.h"
+#include "pureleaf/version.h"
 
 #include <string>
 
 extern "C" {
 
 const char* pl_version(void) {
-    return "0.1.0";
+    static const std::string s = std::to_string(pureleaf::getVersion().major) + "." +
+                                  std::to_string(pureleaf::getVersion().minor) + "." +
+                                  std::to_string(pureleaf::getVersion().patch);
+    return s.c_str();
+}
+
+const char* pl_version_full(void) {
+    return pureleaf::getVersion().full.c_str();
+}
+
+const char* pl_build_info(void) {
+    static const std::string s = pureleaf::getVersion().gitHash + "@" +
+                                  pureleaf::getVersion().gitBranch + ", " +
+                                  pureleaf::getVersion().compiler + ", " +
+                                  pureleaf::getVersion().platform;
+    return s.c_str();
+}
+
+const char* pl_update_channel(void) {
+    return pureleaf::getVersion().updateChannel.c_str();
 }
 
 pl_synctex_forward pl_synctex_to_pdfjs(int page, double x, double y, double scale) {

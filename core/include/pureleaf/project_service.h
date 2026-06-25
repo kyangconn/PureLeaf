@@ -27,6 +27,10 @@ public:
     /// On any failure after partial steps, compensating cleanup is performed.
     Result<Project> createProject(const std::string& name, const std::string& rootPath);
 
+    /// Registers an existing folder as a project without writing template files.
+    /// If a main.tex is present it is recorded as the main file.
+    Result<Project> registerProjectFolder(const std::string& name, const std::string& rootPath);
+
     /// Opens an existing project by id. Does NOT scan disk.
     Result<Project> getProject(const std::string& id);
 
@@ -43,6 +47,9 @@ public:
     /// Revisions are preserved (by design — history outlives deletion).
     Result<void> deleteProject(const std::string& id);
 
+    /// Removes project metadata from the recent/project list without touching files on disk.
+    Result<void> forgetProject(const std::string& id);
+
 private:
     Database& db_;
     ProjectLockManager& lockManager_;
@@ -50,6 +57,9 @@ private:
 
     /// Writes the default main.tex template to a directory.
     bool writeDefaultTemplate(const std::string& dir);
+
+    /// Finds a likely main .tex file in a project directory.
+    std::string detectMainTex(const std::string& dir);
 };
 
 }  // namespace pureleaf

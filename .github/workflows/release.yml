@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.8.*'
+  CMAKE_BUILD_PARALLEL_LEVEL: 3
+
+jobs:
+  # ── Changelog ──────────────────────────────────────────
+  changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.gen.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Generate changelog
+        id: gen
+        run: |
+          bash scripts/gen_changelog.sh
+          {
+            echo 'changelog<<EOF'
+            cat CHANGELOG.md
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: CHANGELOG.md
+
+  # ── Windows (portable zip with Qt runtime) ─────────────
+  windows:
+    needs: changelog
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qtsvg
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+          path: .
+
+      - name: Configure (release mode)
+        env:
+          PURELEAF_UPDATE_CHANNEL: stable
+        run: >
+          cmake -S . -B out/build/release-windows -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DPURELEAF_BUILD_TESTS=OFF
+          -DPURELEAF_DEPLOY_QT_AFTER_BUILD=ON
+
+      - name: Build
+        run: cmake --build out/build/release-windows
+
+      - name: Package (portable zip)
+        shell: pwsh
+        run: |
+          $src = "out/build/release-windows/apps/desktop-qt"
+          $ver = "${{ github.ref_name }}" -replace '^v', ''
+          $dest = "pureleaf-${{ github.ref_name }}-windows-x64"
+          New-Item -ItemType Directory -Path $dest -Force
+          Copy-Item -Path (Join-Path $src '*') -Destination $dest -Recurse -Force
+          Compress-Archive -Path $dest -DestinationPath "$dest.zip" -Force
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: pureleaf-${{ github.ref_name }}-windows-x64.zip
+
+  # ── Linux (tarball) ───────────────────────────────────
+  linux:
+    needs: changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libfontconfig1-dev \
+            libxcb-cursor0 \
+            libxkbcommon-x11-dev
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: linux_gcc_64
+          modules: qtsvg
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+          path: .
+
+      - name: Configure (release mode)
+        env:
+          PURELEAF_UPDATE_CHANNEL: stable
+        run: >
+          cmake -S . -B out/build/release-linux -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=/usr
+          -DPURELEAF_BUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build out/build/release-linux
+
+      - name: Package (tarball)
+        run: |
+          DESTDIR=$(pwd)/staging cmake --install out/build/release-linux
+          cd staging
+          tar czf ../pureleaf-${{ github.ref_name }}-linux-x64.tar.gz .
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: pureleaf-${{ github.ref_name }}-linux-x64.tar.gz
+
+  # ── Source tarball ────────────────────────────────────
+  source:
+    needs: changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+          path: .
+
+      - name: Create source archive
+        run: |
+          mkdir -p dist
+          tar \
+            --exclude-vcs \
+            --exclude='./dist' \
+            --exclude='./out' \
+            --transform 's#^\./#pureleaf-${{ github.ref_name }}/#' \
+            -czf dist/pureleaf-${{ github.ref_name }}-src.tar.gz \
+            .
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: dist/pureleaf-${{ github.ref_name }}-src.tar.gz

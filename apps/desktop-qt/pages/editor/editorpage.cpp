@@ -1,5 +1,6 @@
 #include "editorpage.h"
 
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -10,7 +11,7 @@
 
 namespace pureleaf::ui {
 
-EditorPage::EditorPage(QWidget *parent) : NavPage(parent) {
+EditorPage::EditorPage(QWidget *parent) : NavPage(parent), projectNameLabel_(nullptr) {
     setupUi();
 }
 
@@ -30,12 +31,12 @@ void EditorPage::setupUi() {
     backBtn->setIcon(appIcon(AppIcon::Back, QColor(QStringLiteral("#475569")),
                              QColor(QStringLiteral("#0f172a"))));
     backBtn->setIconSize(QSize(18, 18));
-    auto *projectName = new QLabel(tr("未打开项目"), topBar);
-    projectName->setAlignment(Qt::AlignCenter);
+    projectNameLabel_ = new QLabel(tr("未打开项目"), topBar);
+    projectNameLabel_->setAlignment(Qt::AlignCenter);
 
     topLayout->addWidget(backBtn);
     topLayout->addStretch();
-    topLayout->addWidget(projectName);
+    topLayout->addWidget(projectNameLabel_);
     topLayout->addStretch();
     // Right-side action buttons will go here (compile, etc.)
 
@@ -74,6 +75,11 @@ void EditorPage::setupUi() {
 void EditorPage::onPageEntered(const QVariant &payload) {
     // Payload is the project id to open.
     currentProjectId_ = payload.toString();
+    if (projectNameLabel_) {
+        const QFileInfo info(currentProjectId_);
+        const QString displayName = info.exists() ? info.fileName() : currentProjectId_;
+        projectNameLabel_->setText(displayName.isEmpty() ? tr("未打开项目") : displayName);
+    }
     // TODO: load file tree, open last file, etc.
 }
 

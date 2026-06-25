@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: '6.8.*'
+  CMAKE_BUILD_PARALLEL_LEVEL: 3
+  CTEST_OUTPUT_ON_FAILURE: '1'
+
+jobs:
+  # ── Windows (MSVC + Qt 6) ─────────────────────────────
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qtsvg
+
+      - name: Configure
+        run: >
+          cmake -S . -B out/build/ci-windows -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DPURELEAF_BUILD_TESTS=ON
+          -DPURELEAF_DEPLOY_QT_AFTER_BUILD=ON
+
+      - name: Build
+        run: cmake --build out/build/ci-windows
+
+      - name: Test
+        run: ctest --test-dir out/build/ci-windows --build-config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pureleaf-windows-x64
+          if-no-files-found: error
+          path: out/build/ci-windows/apps/desktop-qt/**
+
+  # ── Linux (GCC + Qt 6) ────────────────────────────────
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libfontconfig1-dev \
+            libxcb-cursor0 \
+            libxkbcommon-x11-dev
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: linux_gcc_64
+          modules: qtsvg
+
+      - name: Configure
+        run: >
+          cmake -S . -B out/build/ci-linux -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DPURELEAF_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build out/build/ci-linux
+
+      - name: Test
+        run: ctest --test-dir out/build/ci-linux --build-config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pureleaf-linux-x64
+          if-no-files-found: error
+          path: out/build/ci-linux/apps/desktop-qt/desktop-qt
+
+  # ── Lint ───────────────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt update && sudo apt install -y clang-format
+
+      - name: Run clang-format check
+        run: |
+          find . -type f \( -name '*.cpp' -o -name '*.h' \) \
+            ! -path './third_party/*' \
+            ! -path './out/*' \
+            ! -path './apps/harmony/*' \
+            -exec clang-format --dry-run --Werror {} +

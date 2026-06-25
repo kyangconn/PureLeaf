@@ -1,0 +1,76 @@
+/// @file version.cpp.in
+/// CMake template — configure_file() substitutes @VAR@ placeholders.
+/// The generated version.cpp lives in core's build directory.
+
+#include "pureleaf/version.h"
+
+#include <sstream>
+
+namespace pureleaf {
+
+// ── Compile-time constants (embedded by CMake) ────────────────
+
+namespace {
+
+constexpr int kMajor = @PROJECT_VERSION_MAJOR@;
+constexpr int kMinor = @PROJECT_VERSION_MINOR@;
+constexpr int kPatch = @PROJECT_VERSION_PATCH@;
+
+}  // anonymous namespace
+
+// ── Singleton ─────────────────────────────────────────────────
+
+static Version s_version;
+
+const Version& getVersion() {
+    return s_version;
+}
+
+// ── Version methods ───────────────────────────────────────────
+
+std::string Version::displayString() const {
+    std::ostringstream os;
+    os << "PureLeaf " << semver;
+    if (!gitHash.empty() && gitHash != "unknown") {
+        os << " (" << gitHash << ")";
+    }
+    return os.str();
+}
+
+bool Version::isDevBuild() const {
+    return updateChannel == "dev" || gitDirty;
+}
+
+bool Version::isReleaseBuild() const {
+    return updateChannel == "stable";
+}
+
+// ── Static initializer (runs before main) ─────────────────────
+
+namespace {
+
+struct VersionInit {
+    VersionInit() {
+        s_version.major    = kMajor;
+        s_version.minor    = kMinor;
+        s_version.patch    = kPatch;
+        s_version.full     = "@PURELEAF_VERSION_FULL@";
+        s_version.semver   = "@PROJECT_VERSION@";
+        s_version.gitHash      = "@PURELEAF_GIT_HASH@";
+        s_version.gitHashFull  = "@PURELEAF_GIT_HASH_FULL@";
+        s_version.gitTag       = "@PURELEAF_GIT_TAG@";
+        s_version.gitBranch    = "@PURELEAF_GIT_BRANCH@";
+        s_version.gitDirty     = @PURELEAF_GIT_DIRTY_BOOL@;
+        s_version.buildType    = "@CMAKE_BUILD_TYPE@";
+        s_version.buildTime    = "@PURELEAF_BUILD_TIME@";
+        s_version.compiler     = "@PURELEAF_COMPILER_ID@ @PURELEAF_COMPILER_VERSION@";
+        s_version.platform     = "@PURELEAF_PLATFORM@";
+        s_version.updateChannel = "@PURELEAF_UPDATE_CHANNEL@";
+    }
+};
+
+static VersionInit g_versionInit;
+
+}  // anonymous namespace
+
+}  // namespace pureleaf

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <QList>
 #include <QMainWindow>
+
+#include "pages/home/homepage.h"
 
 class QEvent;
 class QLabel;
@@ -31,10 +34,17 @@ protected:
     void changeEvent(QEvent* event) override;
 
 private:
+    void applyInitialWindowSize();
     void setupWindowChrome();
     void setupPages();
     void wireNavigation();
     void updateWindowChrome();
+    void loadRecentProjects();
+    void saveRecentProjects() const;
+    void rememberProject(const QString& rootPath);
+    void removeRecentProject(const QString& projectKey);
+    void openProject(const QString& rootPath);
+    void createBlankProject();
 
     QWK::WidgetWindowAgent* windowAgent_;
     QWidget* titleBar_;
@@ -48,6 +58,8 @@ private:
     class HomePage* homePage_;
     class EditorPage* editorPage_;
     class SettingsPage* settingsPage_;
+
+    QList<RecentProject> recentProjects_;
 };
 
 }  // namespace pureleaf::ui

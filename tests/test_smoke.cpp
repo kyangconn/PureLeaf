@@ -37,10 +37,27 @@ TEST(Diff, StubReturnsEmpty) {
 
 TEST(Capi, VersionAndSynctex) {
     EXPECT_STREQ(pl_version(), "0.1.0");
+    // Ensure new C API functions are wired and return non-empty strings.
+    EXPECT_STRNE(pl_version_full(), "");
+    EXPECT_STRNE(pl_build_info(), "");
+    EXPECT_STRNE(pl_update_channel(), "");
 
     auto r = pl_synctex_to_pdfjs(1, 100.0, 200.0, 1.0);
     EXPECT_EQ(r.page, 1);
     EXPECT_DOUBLE_EQ(r.x, 75.0);  // 100 * 0.75 * 1
+}
+
+TEST(Version, CoreVersionAccessorWorks) {
+    const auto& v = pureleaf::getVersion();
+    EXPECT_EQ(v.major, 0);
+    EXPECT_EQ(v.minor, 1);
+    EXPECT_EQ(v.patch, 0);
+    EXPECT_FALSE(v.full.empty());
+    EXPECT_FALSE(v.semver.empty());
+    EXPECT_FALSE(v.platform.empty());
+    EXPECT_FALSE(v.compiler.empty());
+    // Local dev and CI builds are not marked as stable release.
+    EXPECT_FALSE(v.isReleaseBuild());
 }
 
 TEST(Platform, DesktopPathsNonEmpty) {

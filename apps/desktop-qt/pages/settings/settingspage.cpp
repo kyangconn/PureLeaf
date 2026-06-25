@@ -5,10 +5,12 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSize>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
 #include "components/icons/appicon.h"
+#include "pureleaf/version.h"
 
 namespace pureleaf::ui {
 
@@ -54,8 +56,34 @@ void SettingsPage::setupUi() {
     timeoutSpin->setSuffix(tr(" 秒"));
     form->addRow(tr("编译超时"), timeoutSpin);
 
+    // --- Version info ---
+    const auto& v = pureleaf::getVersion();
+
+    auto *versionSection = new QWidget(this);
+    auto *versionLayout = new QVBoxLayout(versionSection);
+    versionLayout->setContentsMargins(0, 16, 0, 0);
+
+    auto *versionLabel = new QLabel(
+        QStringLiteral("PureLeaf %1").arg(QString::fromStdString(v.full)),
+        versionSection);
+    versionLabel->setAlignment(Qt::AlignCenter);
+    versionLabel->setStyleSheet(QStringLiteral("color: #64748b; font-size: 12px;"));
+
+    auto *buildInfoLabel = new QLabel(
+        QString::fromStdString(v.gitHash + " @ " + v.gitBranch + " | " +
+                               v.buildType + " | " + v.compiler + " | " +
+                               v.platform),
+        versionSection);
+    buildInfoLabel->setAlignment(Qt::AlignCenter);
+    buildInfoLabel->setStyleSheet(QStringLiteral("color: #94a3b8; font-size: 10px;"));
+    buildInfoLabel->setWordWrap(true);
+
+    versionLayout->addWidget(versionLabel);
+    versionLayout->addWidget(buildInfoLabel);
+
     root->addWidget(topBar);
     root->addWidget(formWidget, 1);
+    root->addWidget(versionSection);
 }
 
 }  // namespace pureleaf::ui

@@ -24,6 +24,10 @@ option(PURELEAF_BUILD_QT "Build PureLeaf Qt desktop app" ON)
 option(PURELEAF_BUILD_TESTS "Build unit tests (requires network for FetchContent)" OFF)
 option(PURELEAF_USE_BUNDLED_QWINDOWKIT "Use bundled QWindowKit" ON)
 
+# Detect Git metadata and set PURELEAF_* variables for version embedding.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(GetGitInfo)
+
 add_subdirectory(third_party/sqlite3)
 add_subdirectory(core)
 add_subdirectory(capi)

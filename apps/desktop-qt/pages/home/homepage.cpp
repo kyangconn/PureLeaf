@@ -9,6 +9,8 @@
 #include <QMenu>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QSizePolicy>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -17,41 +19,51 @@
 namespace pureleaf::ui {
 
 HomePage::HomePage(QWidget* parent)
-    : NavPage(parent), recentListLayout_(nullptr), emptyStateLabel_(nullptr) {
+    : NavPage(parent),
+      rootLayout_(nullptr),
+      actionPanel_(nullptr),
+      recentPanel_(nullptr),
+      leadingSpacer_(nullptr),
+      trailingSpacer_(nullptr),
+      recentListLayout_(nullptr) {
     setupUi();
 }
 
 void HomePage::setupUi() {
     setObjectName(QStringLiteral("homePage"));
 
-    auto* root = new QHBoxLayout(this);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(0);
+    rootLayout_ = new QHBoxLayout(this);
+    rootLayout_->setContentsMargins(0, 0, 0, 0);
+    rootLayout_->setSpacing(0);
 
-    auto* actionPanel = new QWidget(this);
-    actionPanel->setObjectName(QStringLiteral("homeActionPanel"));
-    actionPanel->setMinimumWidth(320);
-    actionPanel->setMaximumWidth(440);
+    leadingSpacer_ = new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+    trailingSpacer_ = new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
 
-    auto* actionLayout = new QVBoxLayout(actionPanel);
+    actionPanel_ = new QWidget(this);
+    actionPanel_->setObjectName(QStringLiteral("homeActionPanel"));
+    actionPanel_->setMinimumWidth(320);
+    actionPanel_->setMaximumWidth(440);
+    actionPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+
+    auto* actionLayout = new QVBoxLayout(actionPanel_);
     actionLayout->setContentsMargins(48, 48, 48, 48);
     actionLayout->setSpacing(12);
     actionLayout->addStretch();
 
-    auto* welcomeTitle = new QLabel(tr("开始写作"), actionPanel);
+    auto* welcomeTitle = new QLabel(tr("开始写作"), actionPanel_);
     welcomeTitle->setObjectName(QStringLiteral("homeWelcomeTitle"));
 
-    auto* welcomeText = new QLabel(tr("创建一个空白项目，或打开已有的本地文件夹。"), actionPanel);
+    auto* welcomeText = new QLabel(tr("创建一个空白项目，或打开已有的本地文件夹。"), actionPanel_);
     welcomeText->setObjectName(QStringLiteral("homeWelcomeText"));
     welcomeText->setWordWrap(true);
 
-    auto* newProjectButton = new QPushButton(tr("新建空白项目"), actionPanel);
+    auto* newProjectButton = new QPushButton(tr("新建空白项目"), actionPanel_);
     newProjectButton->setObjectName(QStringLiteral("newProjectButton"));
     newProjectButton->setMinimumHeight(46);
     newProjectButton->setIcon(appIcon(AppIcon::NewProject, QColor(QStringLiteral("#ffffff"))));
     newProjectButton->setIconSize(QSize(19, 19));
 
-    auto* openFolderButton = new QPushButton(tr("打开本地文件夹"), actionPanel);
+    auto* openFolderButton = new QPushButton(tr("打开本地文件夹"), actionPanel_);
     openFolderButton->setObjectName(QStringLiteral("openFolderButton"));
     openFolderButton->setMinimumHeight(46);
     openFolderButton->setIcon(appIcon(AppIcon::OpenFolder, QColor(QStringLiteral("#334155")),
@@ -65,18 +77,18 @@ void HomePage::setupUi() {
     actionLayout->addWidget(openFolderButton);
     actionLayout->addStretch();
 
-    auto* recentPanel = new QWidget(this);
-    recentPanel->setObjectName(QStringLiteral("recentProjectsPanel"));
-    auto* recentPanelLayout = new QVBoxLayout(recentPanel);
+    recentPanel_ = new QWidget(this);
+    recentPanel_->setObjectName(QStringLiteral("recentProjectsPanel"));
+    auto* recentPanelLayout = new QVBoxLayout(recentPanel_);
     recentPanelLayout->setContentsMargins(48, 42, 48, 42);
     recentPanelLayout->setSpacing(8);
 
-    auto* recentTitle = new QLabel(tr("最近项目"), recentPanel);
+    auto* recentTitle = new QLabel(tr("最近项目"), recentPanel_);
     recentTitle->setObjectName(QStringLiteral("recentProjectsTitle"));
-    auto* recentSubtitle = new QLabel(tr("继续上次的本地 LaTeX 工作区"), recentPanel);
+    auto* recentSubtitle = new QLabel(tr("继续上次的本地 LaTeX 工作区"), recentPanel_);
     recentSubtitle->setObjectName(QStringLiteral("recentProjectsSubtitle"));
 
-    auto* scrollArea = new QScrollArea(recentPanel);
+    auto* scrollArea = new QScrollArea(recentPanel_);
     scrollArea->setObjectName(QStringLiteral("recentProjectsScrollArea"));
     scrollArea->setWidgetResizable(true);
     scrollArea->setFrameShape(QFrame::NoFrame);
@@ -93,8 +105,10 @@ void HomePage::setupUi() {
     recentPanelLayout->addWidget(recentSubtitle);
     recentPanelLayout->addWidget(scrollArea, 1);
 
-    root->addWidget(actionPanel, 2);
-    root->addWidget(recentPanel, 5);
+    rootLayout_->addItem(leadingSpacer_);
+    rootLayout_->addWidget(actionPanel_, 2);
+    rootLayout_->addWidget(recentPanel_, 5);
+    rootLayout_->addItem(trailingSpacer_);
 
     connect(newProjectButton, &QPushButton::clicked, this, &HomePage::newProjectRequested);
     connect(openFolderButton, &QPushButton::clicked, this, &HomePage::openFolderRequested);
@@ -107,6 +121,11 @@ void HomePage::setupUi() {
         QWidget#homeActionPanel {
             background: #f1f5f9;
             border-right: 1px solid #e2e8f0;
+        }
+
+        QWidget#homeActionPanel[centered="true"] {
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
         }
 
         QLabel#homeWelcomeTitle, QLabel#recentProjectsTitle {
@@ -179,7 +198,7 @@ void HomePage::setupUi() {
             color: #15803d;
         }
 
-        QLabel#recentProjectPath, QLabel#recentProjectMeta, QLabel#emptyRecentProjects {
+        QLabel#recentProjectPath, QLabel#recentProjectMeta {
             color: #64748b;
             font-size: 12px;
         }
@@ -203,12 +222,6 @@ void HomePage::setupUi() {
             background: #e2e8f0;
         }
 
-        QLabel#emptyRecentProjects {
-            padding: 48px 20px;
-            background: white;
-            border: 1px dashed #cbd5e1;
-            border-radius: 10px;
-        }
     )"));
 
     rebuildRecentList();
@@ -230,17 +243,44 @@ void HomePage::rebuildRecentList() {
         delete item;
     }
 
+    updateRecentPanelVisibility();
+
     if (recentProjects_.isEmpty()) {
-        emptyStateLabel_ = new QLabel(tr("还没有最近项目\n从左侧新建项目或打开本地文件夹。"), this);
-        emptyStateLabel_->setObjectName(QStringLiteral("emptyRecentProjects"));
-        emptyStateLabel_->setAlignment(Qt::AlignCenter);
-        recentListLayout_->addWidget(emptyStateLabel_);
         return;
     }
 
-    emptyStateLabel_ = nullptr;
     for (const RecentProject& project : recentProjects_) {
         recentListLayout_->addWidget(createRecentProjectRow(project));
+    }
+}
+
+void HomePage::updateRecentPanelVisibility() {
+    if (!recentPanel_ || !actionPanel_ || !leadingSpacer_ || !trailingSpacer_) {
+        return;
+    }
+
+    const bool hasRecentProjects = !recentProjects_.isEmpty();
+    recentPanel_->setVisible(hasRecentProjects);
+    actionPanel_->setProperty("centered", !hasRecentProjects);
+
+    if (hasRecentProjects) {
+        leadingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+        trailingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+        actionPanel_->setMinimumWidth(320);
+        actionPanel_->setMaximumWidth(440);
+        actionPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    } else {
+        leadingSpacer_->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        trailingSpacer_->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        actionPanel_->setMinimumWidth(360);
+        actionPanel_->setMaximumWidth(460);
+        actionPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    }
+
+    actionPanel_->style()->unpolish(actionPanel_);
+    actionPanel_->style()->polish(actionPanel_);
+    if (rootLayout_) {
+        rootLayout_->invalidate();
     }
 }
 

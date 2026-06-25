@@ -1,3 +1,15 @@
+# Convert PURELEAF_GIT_DIRTY to a C++ boolean literal for version.cpp.in.
+if(PURELEAF_GIT_DIRTY STREQUAL "true")
+    set(PURELEAF_GIT_DIRTY_BOOL "true")
+else()
+    set(PURELEAF_GIT_DIRTY_BOOL "false")
+endif()
+
+# Generate version.cpp from template (embeds build-time constants).
+set(_version_cpp_in  "${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp.in")
+set(_version_cpp_out "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
+configure_file("${_version_cpp_in}" "${_version_cpp_out}" @ONLY)
+
 add_library(pureleaf_core STATIC
     src/storage.cpp
     src/diff.cpp
@@ -9,6 +21,7 @@ add_library(pureleaf_core STATIC
     src/file_service.cpp
     src/lock_manager.cpp
     src/path_util.cpp
+    "${_version_cpp_out}"
 )
 
 target_include_directories(pureleaf_core

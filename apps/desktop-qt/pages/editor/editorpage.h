@@ -4,6 +4,8 @@
 
 #include <QString>
 
+class QLabel;
+
 namespace pureleaf::ui {
 
 /// Editor page — the main writing surface.
@@ -27,6 +29,7 @@ private:
     void setupUi();
 
     QString currentProjectId_;
+    QLabel* projectNameLabel_;
 };
 
 }  // namespace pureleaf::ui
