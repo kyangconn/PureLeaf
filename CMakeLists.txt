@@ -20,7 +20,7 @@ endif()
 # Core targets C++17 internally (see core/CMakeLists.txt) for HarmonyOS
 # portability; the app layer may use C++20.
 
-option(PURELEAF_BUILD_QT "Build PureLeaf Qt desktop app" ON)
+option(PURELEAF_BUILD_QML "Build PureLeaf Qt Quick desktop app" ON)
 option(PURELEAF_BUILD_TESTS "Build unit tests (requires network for FetchContent)" OFF)
 option(PURELEAF_USE_BUNDLED_QWINDOWKIT "Use bundled QWindowKit" ON)
 
@@ -33,8 +33,29 @@ add_subdirectory(core)
 add_subdirectory(capi)
 add_subdirectory(platform)
 
-if(PURELEAF_BUILD_QT)
-    add_subdirectory(apps/desktop-qt)
+if(PURELEAF_BUILD_QML)
+    if(PURELEAF_USE_BUNDLED_QWINDOWKIT)
+        set(_qwindowkit_source_dir "${CMAKE_CURRENT_SOURCE_DIR}/third_party/qwindowkit")
+        if(NOT EXISTS "${_qwindowkit_source_dir}/CMakeLists.txt")
+            message(FATAL_ERROR
+                "Bundled QWindowKit is missing. Initialize third_party/qwindowkit first."
+            )
+        endif()
+
+        set(QWINDOWKIT_BUILD_WIDGETS OFF CACHE BOOL "" FORCE)
+        set(QWINDOWKIT_BUILD_QUICK ${PURELEAF_BUILD_QML} CACHE BOOL "" FORCE)
+        set(QWINDOWKIT_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+        set(QWINDOWKIT_BUILD_DOCUMENTATIONS OFF CACHE BOOL "" FORCE)
+        set(QWINDOWKIT_INSTALL OFF CACHE BOOL "" FORCE)
+
+        add_subdirectory("${_qwindowkit_source_dir}" "${CMAKE_CURRENT_BINARY_DIR}/qwindowkit")
+    else()
+        find_package(QWindowKit CONFIG REQUIRED COMPONENTS Core Quick)
+    endif()
+endif()
+
+if(PURELEAF_BUILD_QML)
+    add_subdirectory(apps/desktop-qml)
 endif()
 
 if(PURELEAF_BUILD_TESTS)

@@ -13,7 +13,7 @@ FORMAT_SCRIPT = scripts/format.cmake
 
 # Detect the built executable
 EXE_EXT   := $(if $(filter Windows_NT,$(OS)),.exe,)
-APP_EXE   := $(BUILD_DIR)/apps/desktop-qt/desktop-qt$(EXE_EXT)
+APP_EXE   := $(BUILD_DIR)/apps/desktop-qml/desktop-qml$(EXE_EXT)
 
 # ── Primary ──────────────────────────────────────────────
 

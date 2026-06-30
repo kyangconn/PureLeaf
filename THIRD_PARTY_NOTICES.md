@@ -69,7 +69,7 @@ No warranty is provided.
 URL:       https://lucide.dev/
 Copyright: (c) 2026 Lucide Icons and Contributors
 License:   ISC License
-Bundled:   apps/desktop-qt/resources/icons/lucide/
+Bundled:   apps/desktop-qml/resources/icons/lucide/
 
 Copyright (c) 2026 Lucide Icons and Contributors
 
@@ -86,7 +86,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 A copy of the ISC License is included at:
-  apps/desktop-qt/resources/icons/lucide/LICENSE
+  apps/desktop-qml/resources/icons/lucide/LICENSE
 ```
 
 ---
@@ -97,7 +97,7 @@ A copy of the ISC License is included at:
 URL:       https://feathericons.com/
 Copyright: (c) 2013-present Cole Bemis
 License:   MIT License
-Bundled:   apps/desktop-qt/resources/icons/lucide/ (arrow-left, minus,
+Bundled:   apps/desktop-qml/resources/icons/lucide/ (arrow-left, minus,
            square, trash-2, x — adapted by Lucide)
 
 The MIT License (MIT)

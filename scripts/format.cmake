@@ -37,7 +37,7 @@ endif()
 get_filename_component(_repo_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 set(_format_roots
-    apps/desktop-qt
+    apps/desktop-qml
     capi
     core
     platform

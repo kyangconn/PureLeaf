@@ -12,6 +12,10 @@ if(POLICY CMP0135)
 endif()
 
 # Find the latest amalgamation URL at https://www.sqlite.org/download.html
+# The amalgamation zip contains only sqlite3.c / sqlite3.h (no CMakeLists.txt),
+# so FetchContent_MakeAvailable populates the sources and skips
+# add_subdirectory (CMake verifies CMakeLists.txt existence). This replaces
+# the deprecated FetchContent_Populate manual pattern.
 FetchContent_Declare(
     sqlite3_src
     URL      https://www.sqlite.org/2026/sqlite-amalgamation-3530200.zip
@@ -19,10 +23,7 @@ FetchContent_Declare(
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
-FetchContent_GetProperties(sqlite3_src)
-if(NOT sqlite3_src_POPULATED)
-    FetchContent_Populate(sqlite3_src)
-endif()
+FetchContent_MakeAvailable(sqlite3_src)
 
 add_library(sqlite3 STATIC ${sqlite3_src_SOURCE_DIR}/sqlite3.c)
 

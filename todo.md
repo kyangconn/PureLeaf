@@ -9,15 +9,127 @@
 - [x] SyncTeX 正向坐标转换（synctex bp → pdf.js px）
 - [x] C API 层（version、synctex、blob path，供 HarmonyOS NAPI 消费）
 - [x] 桌面平台路径解析（Windows %LOCALAPPDATA%、Linux XDG）
-- [x] Qt 6 桌面壳：QWindowKit 无边框窗口 + 自定义标题栏
-- [x] 三页面导航骨架（Home / Editor / Settings，QStackedWidget + Navigator）
-- [x] IDE 风格启动首页：新建/打开入口、最近项目列表与 Git 状态展示接口
-- [x] 语义化图标层：Linux 系统/Breeze 图标优先，Lucide SVG 按需打包回退
+- [x] Qt 6 桌面壳：Qt Quick + QWindowKit::Quick 无边框窗口 + 自定义标题栏
+- [x] 三页面导航骨架（Home / Editor / Settings，QML 状态驱动）
+- [x] IDE 风格启动首页：新建/打开入口、最近项目列表
+- [x] 语义化图标层：Lucide SVG 按需打包，QML `Icon` 统一着色
 - [x] GoogleTest 冒烟测试（架构联通验证）
 - [x] clang-format（Google 风格，4 空格缩进）
 - [x] CMakePresets（x64-debug/release、x86-debug/release）
 - [x] QWindowKit submodule（third_party/qwindowkit）
 - [x] Windows 开发构建自动部署 Qt/QWindowKit 运行时依赖
+
+---
+
+## ✅ GLM/Codex 工作区：desktop-qml 主线迁移
+
+> 本区最初是 GLM 优先执行的 Qt Quick/QML spike；当前已经由 Codex 推进为
+> 桌面主线迁移。`apps/desktop-qt` 已在基础功能闭环后移除，`core/` 业务接口
+> 保持复用，不推进 HarmonyOS ArkUI。
+
+### 0. 本机/Qt 安装检查
+
+- [x] 用 Qt Maintenance Tool 确认当前 Qt 版本安装了这些组件（build 时验证可链接）：
+  - Qt Quick
+  - Qt Quick Controls
+  - Qt Quick Layouts
+  - Qt Quick Templates
+  - Qt Shader Tools
+  - Qt SVG
+  - Qt PDF（configure 输出 `Qt6::Pdf available`，可链接）
+  - Qt Linguist Tools
+  - MSVC 2022 64-bit kit 对应的 Qt 运行库
+- [x] 确认 Qt Creator 可以创建并运行 `Qt Quick Application` / CMake 项目（Qt Creator 先生成 `desktopQ` 骨架，后续已改名）。
+- [x] 不要用 Qt Designer 的 Widgets `.ui` 流程初始化 QML；QML 应使用 Qt Quick
+      Designer / Qt Design Studio / Qt Creator 的 QML 编辑器。
+
+### 1. 新增 apps/desktop-qml 骨架
+
+> 已从 Qt Creator 生成的 `apps/desktopQ/` 改名为仓库主线命名 `apps/desktop-qml/`。
+
+- [x] 新建 `apps/desktop-qml/`，使用 CMake + `qt_add_executable()` +
+      `qt_add_qml_module()`。
+- [x] 目标名 `desktop-qml`，QML 闭环后移除旧 `desktop-qt`。
+- [x] CMake 依赖至少包含：
+  - `Qt::Core` / `Qt::Gui` / `Qt::Qml` / `Qt::Quick` / `Qt::QuickControls2` / `Qt::Svg`
+  - `Qt::Pdf`（`find_package` 可选，configure 输出已记录可用）
+  - `pureleaf_core` / `pureleaf_platform_desktop`
+- [x] 根 `CMakeLists.txt` 增加 `PURELEAF_BUILD_QML` 选项（默认 `ON`，方便直接构建验证）。
+
+### 2. QML 应用最小闭环
+
+- [x] `main.cpp` 使用 `QGuiApplication` + `QQmlApplicationEngine`。
+- [x] 默认设置 Qt Quick Controls style：
+  - Windows 优先 `FluentWinUI3`
+  - Linux 先 `Fusion`
+  - 设置页可保存 `platform` / `fluent` / `fusion` / `breeze`，控件风格下次启动生效
+  - 保留 `QT_QUICK_CONTROLS_STYLE` 环境变量 / `-style` 命令行覆盖能力
+- [x] `Main.qml` 使用 `ApplicationWindow`，三页导航：Home / Editor / Settings。
+- [x] 接入 `QWindowKit::Quick`，`Main.qml` 使用 `WindowAgent` + QML 自绘标题栏。
+
+### 3. C++/QML 边界
+
+- [x] 新建最薄的 `DesktopQmlController`（QObject）暴露给 QML（context property）。
+- [x] 第一阶段控制器边界：
+  - recent projects list（已从 mock 升级为 `ProjectService::listProjects()`）
+  - open folder intent（已从 FileDialog 升级为 `FolderDialog` + `registerProjectFolder()`）
+  - app version（`pureleaf::getVersion().displayString()`）
+  - userDataDir（`pureleaf::desktop::getPaths()`）
+  - settings snapshot + theme palette（使用 `AppSettings` + `config.json` 持久化）
+- [x] 不在 QML 中直接写 SQLite、JSON、QSettings。
+- [x] 写设置持久化：QML controller 已接入 `AppSettings`，`applySettings()` 写回 `config.json`。
+
+### 4. 页面验证范围
+
+- [x] Home：
+  - 新建项目按钮（自定义 Dialog + TextField）
+  - 打开本地文件夹按钮（QtQuick.Dialogs FolderDialog，无需 Widgets）
+  - 最近项目列表（`ProjectService` 真实数据，卡片 + 移除）
+  - 空状态
+- [x] Settings：
+  - 编译器类型下拉 / 编译器路径输入
+  - 字体 / 字号 / Tab 宽度
+  - 亮色 / 暗色 / 跟随系统（主题即时预览）
+  - 保存/应用/取消 按钮
+- [x] Editor：
+  - 左侧项目文件列表（扫描真实项目目录）
+  - 中间 QML `TextArea` 基础编辑器（打开/编辑/保存真实文件）
+  - 右侧 PDF 路径与编译日志面板（PDF 先外部打开）
+  - 顶部编译/保存按钮（+ 返回、主文件、未保存状态）
+
+### 5. 验收标准
+
+- [x] Windows MSVC Debug 能 configure/build/run（`desktop-qml.exe` 链接成功，windeployqt 已部署运行时）。
+- [x] QML 下拉框、数字输入、按钮的基础质感明显优于当前 Widgets 页面（用户目测确认）。
+- [ ] 输入中文、缩放窗口、高 DPI 下没有明显错位（需人工目测确认；源码已 `/utf-8` + `qsTr`）。
+- [ ] 启动时间和内存占用记录到本节下面（需人工采样）。
+- [x] 若 Qt PDF / QML PDF 预览不可用，记录原因和替代方案：当前 `Qt6::Pdf` 可链接，QML 版先提供编译产物路径与外部打开，内嵌预览后续接入。
+- [x] 输出一段结论（见下「Spike 结论」）。
+
+### 5.1 Spike 结论
+
+- **技术可行性**：Qt Quick/QML 路线在当前 MSVC + Qt 6.11 上可编译/运行，三页导航、控件（ComboBox / SpinBox / TextField / Dialog / FolderDialog）、C++↔QML 边界（context property 控制器）均闭环。
+- **架构亮点**：核心复用 `pureleaf_core` + `pureleaf_platform_desktop`，未动 `core/`；主题色放 controller 避免了 QML singleton 跨模块解析的坑；页面以模块内同侩类型引用（`HomePage{}`…）实例化，比 Loader 资源 URL 更稳（曾踩 `qrc:/qt/qml/.../pages/X.qml` 路径不存在的坑，已弃用）。
+- **遗留**：内嵌 PDF 预览、SyncTeX/LSP、高级编辑器能力、中文/DPI/性能需继续实测。
+- **建议**：QML 质感潜力明显（FluentWinUI3 原生风格 + 自绘卡片），已成为桌面主线；后续优先补编辑器能力与 PDF/SyncTeX。
+
+### 5.2 Codex 迁移进展
+
+- **目录/构建**：`apps/desktopQ` 已改名为 `apps/desktop-qml`；根 CMake 统一管理 bundled QWindowKit，只保留 `PURELEAF_BUILD_QML` 主线开关。
+- **窗口壳**：QML app 已接 `QWindowKit::Quick`，`ApplicationWindow` 使用自绘标题栏，并按 Home 空/有项目、Editor、Settings 自动应用窗口大小 profile。
+- **设计系统**：已新增 `Theme.qml`、`PLButton`、`PLIconButton`、`PLTextField`、`PLComboBox`、`PLSpinBox`、`PLCard`、`Icon.qml`；页面不再直接散写主要按钮/输入/下拉样式。
+- **Lucide**：Lucide SVG 与 LICENSE 已迁到 `apps/desktop-qml/resources/icons/lucide/`，避免后续移除 `apps/desktop-qt` 时丢失资源。
+- **真实数据**：`recentProjects` / 新建项目 / 打开文件夹 / 移除项目已接 `ProjectService`；设置已接 QML 版 `AppSettings` 并保存到 `config.json`；编辑器已接真实文件打开/保存与 LaTeX 编译进程。
+- **验证**：MSVC Debug `desktop-qml` target 构建通过；部署步骤已复制 Qt/QWindowKit 运行时 DLL；旧 smoke test 曾存活 5 秒，删除 Widgets 后的二次 GUI smoke 因本轮 Codex usage limit 未重跑，需手动打开确认。
+- **已迁移/删除**：旧 `apps/desktop-qt` 已从 git 移除；未完成项转入下方编辑器、PDF、SyncTeX/LSP backlog。
+
+### 6. 本阶段边界
+
+- [ ] 不迁移 HarmonyOS。
+- [x] QML 基础闭环后删除 `apps/desktop-qt`。
+- [ ] 不重构 `core/` 业务模型。
+- [ ] 不一次性实现完整 LaTeX 编辑器、LSP、SyncTeX。
+- [ ] 不引入 Flutter/Avalonia/Slint/Tauri。
 
 ---
 
@@ -139,21 +251,22 @@
 
 ### 2. 编辑器核心
 
-- [ ] 文件树面板（QTreeView）
-  - 自定义 model（从 FileService::GetTree 获取数据）
-  - [x] 右键菜单：新建文件/文件夹、重命名、删除、复制路径
-  - 拖拽移动文件/文件夹
+- [ ] 文件树面板（QML ListView 起步，后续升级树模型）
+  - [x] 扫描项目文件并显示基础文件列表
+  - [ ] 自定义 model（从 FileService::GetTree 获取数据）
+  - [ ] 右键菜单：新建文件/文件夹、重命名、删除、复制路径
+  - [ ] 拖拽移动文件/文件夹
   - [x] 文件图标（.tex / .bib / .pdf / 文件夹等）
-  - 排序：文件夹优先，按名称排序
+  - [x] 排序：文件夹优先，按名称排序
 - [ ] 代码编辑器
-  - [x] QPlainTextEdit 或 QScintilla 作为基础控件
-  - [x] LaTeX 语法高亮（QSyntaxHighlighter 子类实现）
-  - [x] 行号显示
-  - [x] Tab 缩进（2 空格或 4 空格可配置）
-  - [x] 括号/大括号匹配
-  - [x] 当前行高亮
-  - [x] 自动保存（2 秒 debounce）
-  - [x] 未保存状态指示（标题栏加 `●` 标记）
+  - [x] QML `TextArea` 作为基础可编辑控件
+  - [ ] LaTeX 语法高亮（评估 QTextDocument 桥 / QML 编辑器组件 / LSP token）
+  - [ ] 行号显示
+  - [x] Tab 缩进配置已持久化（编辑器输入行为后续接入）
+  - [ ] 括号/大括号匹配
+  - [ ] 当前行高亮
+  - [ ] 自动保存（2 秒 debounce）
+  - [x] 未保存状态指示（编辑器工具栏）
   - [x] Ctrl+S 手动保存
 - [ ] PDF 预览面板
   - 嵌入 pdf.js 通过 QWebEngineView，或使用 Qt PDF 模块
@@ -267,8 +380,8 @@
   - 在 KDE/Breeze 环境验证系统图标、亮暗色、Wayland 和高 DPI
   - AppImage 环境未安装图标主题时保持 Lucide 回退，不捆绑整套 Breeze 图标
 - [ ] Windows Fluent 搭配
-  - 调研可用于 Qt Widgets 的 Fluent `QStyle` / QSS；避免为了主题引入 WinUI 3 或迁移 Qt Quick
-  - 若无合适依赖，基于现有 QWindowKit + 设计令牌维护轻量 Fluent 风格控件层
+  - 使用 Qt Quick Controls `FluentWinUI3` 作为 Windows 默认风格，保留设置页覆盖
+  - 基于现有 QWindowKit::Quick + 设计令牌维护轻量 Fluent 风格控件层
   - 对齐 Windows 11 的圆角、状态动画、Mica/Acrylic 与系统强调色
 
 ---
