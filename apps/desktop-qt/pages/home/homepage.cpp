@@ -8,6 +8,7 @@
 #include <QLocale>
 #include <QMenu>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QSizePolicy>
 #include <QStyle>
@@ -22,6 +23,7 @@ HomePage::HomePage(QWidget* parent)
     : NavPage(parent),
       rootLayout_(nullptr),
       actionPanel_(nullptr),
+      actionButtonGroup_(nullptr),
       recentPanel_(nullptr),
       leadingSpacer_(nullptr),
       trailingSpacer_(nullptr),
@@ -57,24 +59,31 @@ void HomePage::setupUi() {
     welcomeText->setObjectName(QStringLiteral("homeWelcomeText"));
     welcomeText->setWordWrap(true);
 
-    auto* newProjectButton = new QPushButton(tr("新建空白项目"), actionPanel_);
+    actionButtonGroup_ = new QWidget(actionPanel_);
+    actionButtonGroup_->setObjectName(QStringLiteral("homeActionButtonGroup"));
+    auto* buttonLayout = new QVBoxLayout(actionButtonGroup_);
+    buttonLayout->setContentsMargins(0, 0, 0, 0);
+    buttonLayout->setSpacing(12);
+
+    auto* newProjectButton = new QPushButton(tr("新建空白项目"), actionButtonGroup_);
     newProjectButton->setObjectName(QStringLiteral("newProjectButton"));
     newProjectButton->setMinimumHeight(46);
     newProjectButton->setIcon(appIcon(AppIcon::NewProject, QColor(QStringLiteral("#ffffff"))));
     newProjectButton->setIconSize(QSize(19, 19));
 
-    auto* openFolderButton = new QPushButton(tr("打开本地文件夹"), actionPanel_);
+    auto* openFolderButton = new QPushButton(tr("打开本地文件夹"), actionButtonGroup_);
     openFolderButton->setObjectName(QStringLiteral("openFolderButton"));
     openFolderButton->setMinimumHeight(46);
     openFolderButton->setIcon(appIcon(AppIcon::OpenFolder, QColor(QStringLiteral("#334155")),
                                       QColor(QStringLiteral("#0f172a"))));
     openFolderButton->setIconSize(QSize(19, 19));
+    buttonLayout->addWidget(newProjectButton);
+    buttonLayout->addWidget(openFolderButton);
 
     actionLayout->addWidget(welcomeTitle);
     actionLayout->addWidget(welcomeText);
     actionLayout->addSpacing(16);
-    actionLayout->addWidget(newProjectButton);
-    actionLayout->addWidget(openFolderButton);
+    actionLayout->addWidget(actionButtonGroup_, 0, Qt::AlignLeft);
     actionLayout->addStretch();
 
     recentPanel_ = new QWidget(this);
@@ -227,6 +236,11 @@ void HomePage::setupUi() {
     rebuildRecentList();
 }
 
+void HomePage::resizeEvent(QResizeEvent* event) {
+    NavPage::resizeEvent(event);
+    updateActionButtonWidth();
+}
+
 void HomePage::onPageEntered(const QVariant& payload) {
     (void)payload;
     // TODO: refresh recent projects from the workspace repository.
@@ -264,17 +278,19 @@ void HomePage::updateRecentPanelVisibility() {
     actionPanel_->setProperty("centered", !hasRecentProjects);
 
     if (hasRecentProjects) {
+        rootLayout_->setContentsMargins(0, 0, 0, 0);
         leadingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
         trailingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
         actionPanel_->setMinimumWidth(320);
         actionPanel_->setMaximumWidth(440);
         actionPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     } else {
-        leadingSpacer_->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        trailingSpacer_->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        actionPanel_->setMinimumWidth(360);
-        actionPanel_->setMaximumWidth(460);
-        actionPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        rootLayout_->setContentsMargins(28, 28, 28, 28);
+        leadingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+        trailingSpacer_->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+        actionPanel_->setMinimumWidth(0);
+        actionPanel_->setMaximumWidth(QWIDGETSIZE_MAX);
+        actionPanel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     }
 
     actionPanel_->style()->unpolish(actionPanel_);
@@ -282,6 +298,27 @@ void HomePage::updateRecentPanelVisibility() {
     if (rootLayout_) {
         rootLayout_->invalidate();
     }
+    updateActionButtonWidth();
+}
+
+void HomePage::updateActionButtonWidth() {
+    if (!actionButtonGroup_ || !actionPanel_) {
+        return;
+    }
+
+    const bool hasRecentProjects = !recentProjects_.isEmpty();
+    const int availableWidth = qMax(0, actionPanel_->width() - 96);
+    if (hasRecentProjects) {
+        const int targetWidth = qMax(240, availableWidth);
+        actionButtonGroup_->setMinimumWidth(targetWidth);
+        actionButtonGroup_->setMaximumWidth(targetWidth);
+        return;
+    }
+
+    const int targetWidth =
+        availableWidth < 420 ? availableWidth : qBound(320, availableWidth / 2, 460);
+    actionButtonGroup_->setMinimumWidth(qMax(260, targetWidth));
+    actionButtonGroup_->setMaximumWidth(qMax(260, targetWidth));
 }
 
 QWidget* HomePage::createRecentProjectRow(const RecentProject& project) {

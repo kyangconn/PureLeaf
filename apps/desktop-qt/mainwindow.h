@@ -2,10 +2,12 @@
 
 #include <QList>
 #include <QMainWindow>
+#include <QSize>
 
 #include "pages/home/homepage.h"
 
 class QEvent;
+class QCloseEvent;
 class QLabel;
 class QStackedWidget;
 class QToolButton;
@@ -32,9 +34,14 @@ public:
 
 protected:
     void changeEvent(QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     void applyInitialWindowSize();
+    void applyHomeWindowSize();
+    void applyEditorWindowSize();
+    void applySettingsWindowSize();
+    void applyWindowSizeProfile(const QSize& targetSize, const QSize& minimumSize);
     void setupWindowChrome();
     void setupPages();
     void wireNavigation();

@@ -6,6 +6,7 @@
 #include "core/navpage.h"
 
 class QHBoxLayout;
+class QResizeEvent;
 class QSpacerItem;
 class QVBoxLayout;
 class QWidget;
@@ -39,6 +40,9 @@ public:
     void onPageEntered(const QVariant& payload) override;
     void setRecentProjects(const QList<RecentProject>& projects);
 
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+
 signals:
     /// Emitted when the user wants to open a project.
     void projectOpenRequested(const QString& projectKey);
@@ -50,12 +54,14 @@ private:
     void setupUi();
     void rebuildRecentList();
     void updateRecentPanelVisibility();
+    void updateActionButtonWidth();
     QWidget* createRecentProjectRow(const RecentProject& project);
     static QString projectKey(const RecentProject& project);
 
     QList<RecentProject> recentProjects_;
     QHBoxLayout* rootLayout_;
     QWidget* actionPanel_;
+    QWidget* actionButtonGroup_;
     QWidget* recentPanel_;
     QSpacerItem* leadingSpacer_;
     QSpacerItem* trailingSpacer_;

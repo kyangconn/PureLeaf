@@ -57,6 +57,8 @@ qt_add_executable(desktop-qt
     mainwindow.h
     components/icons/appicon.cpp
     components/icons/appicon.h
+    core/appsettings.cpp
+    core/appsettings.h
     core/navigator.cpp
     core/navigator.h
     core/navpage.h
@@ -76,6 +78,7 @@ qt_add_resources(desktop-qt "pureleaf_icons"
     BASE "${_pureleaf_lucide_icon_dir}"
     FILES
         "${_pureleaf_lucide_icon_dir}/arrow-left.svg"
+        "${_pureleaf_lucide_icon_dir}/chevron-down.svg"
         "${_pureleaf_lucide_icon_dir}/copy.svg"
         "${_pureleaf_lucide_icon_dir}/ellipsis.svg"
         "${_pureleaf_lucide_icon_dir}/file-plus.svg"

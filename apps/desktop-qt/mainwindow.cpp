@@ -2,7 +2,9 @@
 
 #include <QWKWidgets/widgetwindowagent.h>
 
+#include <QCloseEvent>
 #include <QColor>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
 #include <QEvent>
@@ -26,7 +28,9 @@
 #include <QToolButton>
 
 #include "components/icons/appicon.h"
+#include "core/appsettings.h"
 #include "core/navigator.h"
+#include "core/navpage.h"
 #include "pages/editor/editorpage.h"
 #include "pages/home/homepage.h"
 #include "pages/settings/settingspage.h"
@@ -59,6 +63,17 @@ QString projectIdentity(const QString& path) {
 QString defaultProjectDialogPath() {
     const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     return documents.isEmpty() ? QDir::homePath() : documents;
+}
+
+QString defaultManagedProjectsRoot() {
+    QString dataRoot = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    if (dataRoot.isEmpty()) {
+        dataRoot = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    }
+    if (dataRoot.isEmpty()) {
+        dataRoot = QDir::home().filePath(QStringLiteral(".pureleaf"));
+    }
+    return QDir(dataRoot).filePath(QStringLiteral("projects"));
 }
 
 QString displayNameForProjectRoot(const QString& rootPath) {
@@ -230,14 +245,16 @@ MainWindow::MainWindow(QWidget* parent)
 
     setCentralWidget(stack_);
     setWindowTitle(QStringLiteral("PureLeaf"));
-    setMinimumSize(820, 520);
+    setMinimumSize(520, 420);
     applyInitialWindowSize();
 
     setupPages();
     wireNavigation();
     loadRecentProjects();
+    editorPage_->applySettings(loadAppSettings());
 
     navigator_->navigateTo(PageId::Home);
+    applyHomeWindowSize();
 }
 
 MainWindow::~MainWindow() = default;
@@ -246,6 +263,16 @@ void MainWindow::changeEvent(QEvent* event) {
     QMainWindow::changeEvent(event);
     if (event->type() == QEvent::ActivationChange || event->type() == QEvent::WindowStateChange) {
         updateWindowChrome();
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    if (auto* page = qobject_cast<NavPage*>(stack_->currentWidget())) {
+        page->onPageLeft();
+    }
+    QMainWindow::closeEvent(event);
+    if (event->isAccepted()) {
+        QCoreApplication::quit();
     }
 }
 
@@ -323,8 +350,10 @@ void MainWindow::setupWindowChrome() {
     connect(maximizeButton_, &QToolButton::clicked, this,
             [this]() { isMaximized() ? showNormal() : showMaximized(); });
     connect(closeButton, &QToolButton::clicked, this, &QWidget::close);
-    connect(settingsButton, &QToolButton::clicked, this,
-            [this]() { navigator_->navigateTo(PageId::Settings); });
+    connect(settingsButton, &QToolButton::clicked, this, [this]() {
+        navigator_->navigateTo(PageId::Settings);
+        applySettingsWindowSize();
+    });
     connect(this, &QWidget::windowTitleChanged, titleLabel_, &QLabel::setText);
 
 #ifdef Q_OS_WIN
@@ -409,21 +438,39 @@ void MainWindow::setupWindowChrome() {
 }
 
 void MainWindow::applyInitialWindowSize() {
+    applyWindowSizeProfile(QSize(1180, 760), QSize(820, 520));
+}
+
+void MainWindow::applyHomeWindowSize() {
+    if (recentProjects_.isEmpty()) {
+        applyWindowSizeProfile(QSize(560, 460), QSize(500, 400));
+    } else {
+        applyWindowSizeProfile(QSize(1080, 700), QSize(820, 520));
+    }
+}
+
+void MainWindow::applyEditorWindowSize() {
+    applyWindowSizeProfile(QSize(1280, 820), QSize(900, 560));
+}
+
+void MainWindow::applySettingsWindowSize() {
+    applyWindowSizeProfile(QSize(920, 660), QSize(720, 520));
+}
+
+void MainWindow::applyWindowSizeProfile(const QSize& targetSize, const QSize& minimumSize) {
+    setMinimumSize(minimumSize);
+    if (isMaximized() || isFullScreen()) {
+        return;
+    }
+
     const QScreen* primaryScreen = QGuiApplication::primaryScreen();
     const QRect available =
         primaryScreen ? primaryScreen->availableGeometry() : QRect(0, 0, 1280, 800);
 
-    const int minWidth = minimumWidth();
-    const int minHeight = minimumHeight();
-    const int maxWidth = qMax(minWidth, qMin(1440, static_cast<int>(available.width() * 0.92)));
-    int targetWidth = qBound(minWidth, static_cast<int>(available.width() * 0.82), maxWidth);
-
-    const int maxHeight = qMax(minHeight, static_cast<int>(available.height() * 0.78));
-    int targetHeight = qMin(static_cast<int>(targetWidth * 0.75), maxHeight);
-    targetHeight = qMax(minHeight, targetHeight);
-
-    const int fourByThreeWidth = (targetHeight * 4 + 2) / 3;
-    targetWidth = qBound(minWidth, qMax(targetWidth, fourByThreeWidth), maxWidth);
+    const int targetWidth =
+        qBound(minimumSize.width(), targetSize.width(), static_cast<int>(available.width() * 0.94));
+    const int targetHeight = qBound(minimumSize.height(), targetSize.height(),
+                                    static_cast<int>(available.height() * 0.88));
 
     resize(targetWidth, targetHeight);
     move(available.center() - rect().center());
@@ -474,13 +521,16 @@ void MainWindow::wireNavigation() {
     connect(editorPage_, &EditorPage::backRequested, this, [this]() {
         loadRecentProjects();
         navigator_->navigateTo(PageId::Home);
+        applyHomeWindowSize();
     });
 
     // Settings -> Home
     connect(settingsPage_, &SettingsPage::backRequested, this, [this]() {
         loadRecentProjects();
         navigator_->navigateTo(PageId::Home);
+        applyHomeWindowSize();
     });
+    connect(settingsPage_, &SettingsPage::settingsApplied, editorPage_, &EditorPage::applySettings);
 }
 
 void MainWindow::loadRecentProjects() {
@@ -521,6 +571,9 @@ void MainWindow::loadRecentProjects() {
     settings.endArray();
 
     homePage_->setRecentProjects(recentProjects_);
+    if (stack_->currentWidget() == homePage_) {
+        applyHomeWindowSize();
+    }
 }
 
 void MainWindow::saveRecentProjects() const {
@@ -585,15 +638,10 @@ void MainWindow::openProject(const QString& rootPath) {
 
     rememberProject(normalized);
     navigator_->navigateTo(PageId::Editor, normalized);
+    applyEditorWindowSize();
 }
 
 void MainWindow::createBlankProject() {
-    const QString parentDir = QFileDialog::getExistingDirectory(
-        this, tr("选择新项目保存位置"), defaultProjectDialogPath(), QFileDialog::ShowDirsOnly);
-    if (parentDir.isEmpty()) {
-        return;
-    }
-
     bool ok = false;
     const QString projectName = QInputDialog::getText(this, tr("新建空白项目"), tr("项目名称"),
                                                       QLineEdit::Normal, tr("Untitled"), &ok)
@@ -604,6 +652,14 @@ void MainWindow::createBlankProject() {
     if (!isValidProjectName(projectName)) {
         QMessageBox::warning(this, tr("项目名称不可用"),
                              tr("项目名称不能包含路径分隔符，也不能是 . 或 ..。"));
+        return;
+    }
+
+    const QString parentDir = defaultManagedProjectsRoot();
+    if (!QDir().mkpath(parentDir)) {
+        QMessageBox::critical(
+            this, tr("创建失败"),
+            tr("无法创建项目目录：\n%1").arg(QDir::toNativeSeparators(parentDir)));
         return;
     }
 

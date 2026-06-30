@@ -77,17 +77,17 @@
 ### 3. LaTeX 编译
 
 - [ ] 编译服务（CompileService）
-  - 从设置读取 compiler（pdflatex/xelatex/lualatex）和 timeout
-  - `QProcess` 异步调用编译器，实时捕获 stdout/stderr
-  - 查找主文件：优先 `main.tex`，否则第一个 `.tex`
-  - 返回：PDF 路径 + 编译日志
+  - [x] 从设置读取 compiler（pdflatex/xelatex/lualatex）和 timeout
+  - [x] `QProcess` 异步调用编译器，实时捕获 stdout/stderr
+  - [x] 查找主文件：优先 `main.tex`，否则第一个 `.tex`
+  - [x] 返回：PDF 路径 + 编译日志
 - [ ] 编译日志解析
   - 解析 LaTeX 错误/警告格式（`! `、`l.xxx`、`Warning: `）
   - 结构化输出：文件、行号、级别、消息
 - [ ] 辅助文件管理
-  - 编译产物（.aux/.log/.out/.toc 等）写到项目目录下的 `build/` 子目录
-  - `-output-directory` 参数隔离
-  - clean build：清理辅助文件重新编译
+  - [x] 编译产物（.aux/.log/.out/.toc 等）写到项目目录下的 `build/` 子目录
+  - [x] `-output-directory` 参数隔离
+  - [x] clean build：清理辅助文件重新编译
 - [ ] SyncTeX 反向搜索
   - 解析 `.synctex.gz` 文件，从 PDF 坐标反查源码位置
   - `synctexReverse(page, x, y) → {file, line, column}`
@@ -115,6 +115,8 @@
 保留 Home 作为稳定的工作区启动器；Editor 专注写作，Settings 从全局标题栏进入：
 
 - [x] Home 左侧操作区：新建空白项目、打开本地文件夹
+  - 新建空白项目默认写入应用数据目录下的 `projects/`
+  - 空首页 / 最近项目 / 编辑器 / 设置使用不同窗口尺寸 profile
 - [x] Home 右侧最近项目列表组件
   - 项目名、根路径、字符数
   - Git 状态：未检测 / 无仓库 / 干净 / 有更改 / 冲突
@@ -132,73 +134,74 @@
   - 检测 LaTeX 发行版和默认编译器
   - 选择主题与界面语言
 - [ ] Editor 工具栏
-  - 左侧：返回首页、当前项目名和文件面包屑
-  - 右侧：主文件、编译、日志等写作上下文操作
+  - [x] 左侧：返回首页、当前项目名和文件面包屑
+  - [x] 右侧：主文件、编译、日志等写作上下文操作
 
 ### 2. 编辑器核心
 
 - [ ] 文件树面板（QTreeView）
   - 自定义 model（从 FileService::GetTree 获取数据）
-  - 右键菜单：新建文件/文件夹、重命名、删除、复制路径
+  - [x] 右键菜单：新建文件/文件夹、重命名、删除、复制路径
   - 拖拽移动文件/文件夹
-  - 文件图标（.tex / .bib / .pdf / 文件夹等）
+  - [x] 文件图标（.tex / .bib / .pdf / 文件夹等）
   - 排序：文件夹优先，按名称排序
 - [ ] 代码编辑器
-  - QPlainTextEdit 或 QScintilla 作为基础控件
-  - LaTeX 语法高亮（QSyntaxHighlighter 子类实现）
-  - 行号显示
-  - Tab 缩进（2 空格或 4 空格可配置）
-  - 括号/大括号匹配
-  - 当前行高亮
-  - 自动保存（2 秒 debounce）
-  - 未保存状态指示（标题栏加 `●` 标记）
-  - Ctrl+S 手动保存
+  - [x] QPlainTextEdit 或 QScintilla 作为基础控件
+  - [x] LaTeX 语法高亮（QSyntaxHighlighter 子类实现）
+  - [x] 行号显示
+  - [x] Tab 缩进（2 空格或 4 空格可配置）
+  - [x] 括号/大括号匹配
+  - [x] 当前行高亮
+  - [x] 自动保存（2 秒 debounce）
+  - [x] 未保存状态指示（标题栏加 `●` 标记）
+  - [x] Ctrl+S 手动保存
 - [ ] PDF 预览面板
   - 嵌入 pdf.js 通过 QWebEngineView，或使用 Qt PDF 模块
   - 页码导航（上一页/下一页/跳转）
   - 缩放（Ctrl+滚轮、按钮）
   - SyncTeX 正向搜索：编辑器光标位置 → PDF 高亮对应位置
   - SyncTeX 反向搜索：PDF 点击 → 编辑器跳转源码行
-  - 下载/外部打开按钮
+  - [x] 下载/外部打开按钮
 
 ### 3. 设置面板
 
 作为编辑器内的常驻二级界面（右侧抽屉 `QDrawer` 或弹出面板）：
 
-- [ ] 设置面板 UI 骨架
-  - 分类导航（编译 / 编辑器 / 外观 / 快捷键 / 关于）
-  - 表单布局（QFormLayout + QScrollArea）
-  - 保存/取消/应用 按钮
+- [x] 设置面板 UI 骨架
+  - [x] 分类导航（编译 / 编辑器 / 外观 / 快捷键 / 关于）
+  - [x] 表单布局（QFormLayout + QScrollArea）
+  - [x] 保存/取消/应用 按钮
 - [ ] 编译设置
-  - 编译器路径（QLineEdit + 浏览按钮，默认从 PATH 检测）
-  - 编译器类型下拉（pdflatex / xelatex / lualatex）
-  - 编译超时（QSpinBox，5-600 秒）
-  - 编译输出目录（默认项目内 `build/`）
-  - BibTeX 编译器路径
+  - [x] 编译器路径（QLineEdit + 浏览按钮，默认从 PATH 检测）
+  - [x] 编译器类型下拉（pdflatex / xelatex / lualatex）
+  - [x] 编译超时（QSpinBox，5-600 秒）
+  - [x] 编译输出目录（默认项目内 `build/`）
+  - [x] BibTeX 编译器路径
   - 编译链（latex + bibtex + latex + latex 次数可配置）
 - [ ] 编辑器设置
-  - 字体族（QFontComboBox）
-  - 字号（QSpinBox，8-36）
-  - Tab 宽度（2/4/8）
-  - Tab 转空格开关
-  - 自动保存开关 + 延迟（500-10000ms）
-  - 自动补全开关
-  - 行号显示开关
-  - 自动换行开关
-  - 括号自动闭合开关
+  - [x] 字体族（QFontComboBox）
+  - [x] 等宽字体筛选开关
+  - [x] 字号（QSpinBox，8-36）
+  - [x] Tab 宽度（2/4/8）
+  - [x] Tab 转空格开关
+  - [x] 自动保存开关 + 延迟（500-10000ms）
+  - [x] 自动补全开关
+  - [x] 行号显示开关
+  - [x] 自动换行开关
+  - [x] 括号自动闭合开关
 - [ ] 外观设置
-  - 应用主题（亮色 / 暗色 / 跟随系统）
-  - 编辑器配色方案（内置几种：VS Code Dark、Monokai、Solarized 等）
-  - 界面语言（中文 / English）
-  - 字体大小（全局缩放）
+  - [x] 应用主题（亮色 / 暗色 / 跟随系统）
+  - [x] 编辑器配色方案（内置几种：VS Code Dark、Monokai、Solarized 等）
+  - [x] 界面语言（中文 / English）
+  - [x] 字体大小（全局缩放）
 - [ ] 快捷键设置（远期）
-  - 快捷键表：编译(F5)、保存(Ctrl+S)、查找(Ctrl+F)、跳转行(Ctrl+G) 等
+  - [x] 快捷键表：编译(F5)、保存(Ctrl+S)、查找(Ctrl+F)、跳转行(Ctrl+G) 等
   - 自定义快捷键：点击条目 → 按下新组合键 → 冲突检测
   - 导入/导出快捷键配置
-- [ ] 设置持久化
-  - 读写 `{userDataDir}/config.json`（或 YAML）
-  - 启动时加载，运行时通过 Settings 服务统一访问
-  - 修改设置后通知相关服务热刷新（编译器、字体等）
+- [x] 设置持久化
+  - [x] 读写 `{userDataDir}/config.json`（或 YAML）
+  - [x] 启动时加载，运行时通过 Settings 服务统一访问
+  - [x] 修改设置后通知相关服务热刷新（编译器、字体等）
 
 ### 4. 快捷键体系（远期）
 
